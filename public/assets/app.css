@@ -1437,3 +1437,8 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .pm-note-actions {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px}
 .pm-note-actions .pm-note-report-form {margin-top:0}
 .pm-note-delete {color:#d45d68;border-color:currentColor}
+
+.activity-pagination {display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:20px;border-top:1px solid var(--line)}
+.activity-pagination form {display:flex;align-items:center;gap:8px}
+.activity-pagination input {width:75px}
+.activity-pagination input,.activity-page-size select {padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}

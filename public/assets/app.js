@@ -223,3 +223,5 @@ document.querySelectorAll('.pm-note').forEach(note=>{
         }catch{feedback.textContent='Could not delete. Please reload the page and try again.';checkbox.disabled=button.disabled=false;}
     });
 });
+
+document.querySelector('.activity-page-size select')?.addEventListener('change',event=>event.target.form.requestSubmit());

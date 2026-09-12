@@ -120,4 +120,6 @@ PMs and Admins can add store notes and control each note's inclusion in reports.
 
 ## Live dashboard
 
-The PM/Admin dashboard and CSV summary use DashboardReport::live. Stores live uses the same completion definition as the Stores list. Upcoming visits show the next six unfinished stores scheduled today or later. Needs attention links to Edit store for missing installation dates and overdue unfinished stores. Recent activity lists the latest eight recorded step changes, note additions, and store creations; it is not a history of every field edit. Workstream counts also use actual completion/sign-off data. Report preview opens in a new tab; PM notes sit below the checklist and above manual reminders.
+The PM/Admin dashboard and CSV summary use DashboardReport::live. Stores live uses the same completion definition as the Stores list. Upcoming visits show the next six unfinished stores scheduled today or later. Needs attention links to Edit store for missing installation dates and overdue unfinished stores. Recent activity lists the latest five recorded step changes, note additions, and store creations; it is not a history of every field edit. Workstream counts also use actual completion/sign-off data. Report preview opens in a new tab; PM notes sit below the checklist and above manual reminders.
+
+The Recent activity dashboard heading opens the full PM/Admin activity history with 10, 50, or 100 entries per page, Previous/Next links, and a page-number control. Entries are ordered newest first.

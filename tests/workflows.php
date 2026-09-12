@@ -131,6 +131,13 @@ try{
     verify(count($live['activity'])>0,'Dashboard reads recorded activity');
     denied(fn()=>DashboardReport::live($p,$actors['worker']),'Contractor cannot access global dashboard data');
 
+    $first=DashboardReport::activity($p,$actors['admin'],1,10);
+    $second=DashboardReport::activity($p,$actors['admin'],2,10);
+    verify(count($live['activity'])===5,'Dashboard activity is limited to five entries');
+    verify(count($first['rows'])===10&&$first['pages']>1,'Activity history paginates ten rows');
+    verify(!array_intersect(array_column($first['rows'],'id'),array_column($second['rows'],'id')),'Activity pages do not overlap');
+    verify(DashboardReport::activity($p,$actors['admin'],999,50)['page']===1,'Out-of-range activity page is clamped');
+    denied(fn()=>DashboardReport::activity($p,$actors['worker']),'Contractors cannot read global activity history');
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

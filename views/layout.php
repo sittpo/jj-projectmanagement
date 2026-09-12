@@ -48,7 +48,7 @@
     <?php if ($error): ?><div class="notice error" role="alert"><?= e($error) ?></div><?php endif; ?>
     <?php if ($page === 'forbidden'): ?>
     <div class="panel empty-state"><?= icon('shield') ?><h1>Access restricted</h1><p>You do not have permission to view this section.</p><a class="button primary" href="<?= e(url('dashboard')) ?>">Back to dashboard</a></div>
-    <?php else: require __DIR__ . '/' . match ($page) { 'users' => 'users', 'user-edit' => 'user-form', 'stores'=>'stores','store'=>'store','store-edit'=>'store-edit','companies'=>'companies','company-edit'=>'company-edit','templates'=>'templates','template-edit'=>'template-edit','settings'=>'settings','smtp'=>'smtp','team'=>'team','step-error'=>'step-error', default => 'dashboard' } . '.php'; endif; ?>
+    <?php else: require __DIR__ . '/' . match ($page) { 'activity'=>'activity', 'users' => 'users', 'user-edit' => 'user-form', 'stores'=>'stores','store'=>'store','store-edit'=>'store-edit','companies'=>'companies','company-edit'=>'company-edit','templates'=>'templates','template-edit'=>'template-edit','settings'=>'settings','smtp'=>'smtp','team'=>'team','step-error'=>'step-error', default => 'dashboard' } . '.php'; endif; ?>
     <footer class="page-footer"><span>JJ Project Management</span><span>Built for a connected rollout.</span></footer>
 </main>
 </div>

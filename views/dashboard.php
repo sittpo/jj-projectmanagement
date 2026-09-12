@@ -31,7 +31,7 @@
 <tr><td><a class="store-name" href="<?= e(url('store',['id'=>$visit['id']])) ?>"><strong><?= e($visit['name']) ?></strong></a><small><?= e($visit['code']) ?> · <?= e($visit['city']) ?></small></td><td><?= e($visit['company_name']?:'Unassigned') ?></td><td class="nowrap"><?= e($visit['target_date']) ?></td><td><span class="badge <?= $visit['target_date']===$report['today']?'positive':'neutral' ?>"><?= $visit['target_date']===$report['today']?'Due today':'Scheduled' ?></span></td></tr>
 <?php endforeach; ?>
 </tbody></table></div><?php if(!$report['visits']): ?><p class="empty-search">No upcoming store visits.</p><?php endif; ?></section>
-<section class="panel"><div class="panel-heading"><div><h2>Recent activity</h2><p>Latest updates from the field</p></div></div><div class="activity-list">
+<section class="panel"><div class="panel-heading"><div><h2><a href="<?= e(url('activity')) ?>">Recent activity <?= icon('arrow') ?></a></h2><p>Latest updates from the field</p></div></div><div class="activity-list">
 <?php foreach ($report['activity'] as $activity): ?>
 <a class="activity" href="<?= e(url('store',['id'=>$activity['store_id']])) ?>"><span class="activity-icon"><?= icon('clock') ?></span><div><strong><?= e(match($activity['action']){'save'=>'Step updated: '.$activity['title'],'signoff'=>'Step signed off: '.$activity['title'],'reopen'=>'Step reopened: '.$activity['title'],default=>$activity['title']}) ?></strong><p><?= e($activity['code'].' · '.$activity['store_name'].($activity['actor_name']?' · '.$activity['actor_name']:'')) ?></p><small><?= e((new DateTimeImmutable($activity['created_at']))->setTimezone(new DateTimeZone('Europe/Copenhagen'))->format('Y-m-d H:i T')) ?></small></div></a>
 <?php endforeach; ?>

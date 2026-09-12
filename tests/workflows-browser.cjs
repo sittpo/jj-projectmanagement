@@ -252,6 +252,20 @@ module.exports=async({page,context,browser,base,password,root})=>{
     const preview=await popupEvent;await preview.waitForLoadState();
     assert(preview.url().includes('page=store-report'));await preview.close();
 
+    await page.goto(route('dashboard'));
+    for(let i=0;i<3;i++)await post(context,'store-edit',{code:'ACT-'+i,name:'Activity fixture '+i,city:'Test City',owner_name:'Owner'});
+    assert.equal(await page.locator('.activity-list .activity').count(),5);
+    await page.getByRole('link',{name:'Recent activity',exact:false}).click();
+    await page.getByRole('heading',{name:'Recent activity',exact:true}).waitFor();
+    assert.equal(await page.locator('.activity-list .activity').count(),10);
+    await page.getByRole('link',{name:'Next',exact:true}).click();
+    assert(page.url().includes('p=2'));
+    await page.getByLabel('Activities per page').selectOption('50');
+    await page.waitForURL('**per_page=50');
+    assert((await page.locator('.activity-pagination').textContent()).includes('Page 1'));
+    await page.getByLabel('Activities per page').selectOption('100');
+    await page.waitForURL('**per_page=100');
+    assert.equal((await worker.ctx.request.get(route('activity'))).status(),403);
     await page.goto(route('users'));
     for(const account of [worker,lead,outsider,pm])await account.ctx.close();
     console.log('PASS: workflow UI, company isolation, ordering, store creation, photo validation/authorization, PM sign-off, and responsive report preview.');

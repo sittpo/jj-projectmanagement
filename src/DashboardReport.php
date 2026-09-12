@@ -26,13 +26,7 @@ final class DashboardReport
             $workstreams[]=['label'=>$label,'icon'=>$category==='dvr'?'camera':$category,'complete'=>(int)$row['complete'],'total'=>(int)$row['total']];
             $done+=(int)$row['complete'];$taskTotal+=(int)$row['total'];
         }
-        $activity=$project->rows("SELECT * FROM (
-            SELECT a.id,s.id AS store_id,s.name AS store_name,s.code,a.actor_name,a.created_at,a.action,st.title
-            FROM task_audit a JOIN subtasks st ON st.id=a.subtask_id JOIN tasks t ON t.id=st.task_id JOIN stores s ON s.id=t.store_id
-            UNION ALL SELECT n.id,s.id,s.name,s.code,n.author_name,n.created_at,'pm_note','Project Manager note added'
-            FROM store_pm_notes n JOIN stores s ON s.id=n.store_id
-            UNION ALL SELECT s.id,s.id,s.name,s.code,'',s.created_at,'store_created','Store created' FROM stores s
-        ) events ORDER BY created_at DESC,id DESC LIMIT 8");
+        $activity=self::activity($project,$actor,1,5)['rows'];
         return [
             'metrics'=>[
                 ['label'=>'Stores live','value'=>$complete,'unit'=>'/ '.$total,'trend'=>($total?round($complete/$total*100):0).'% of stores complete','icon'=>'store'],
@@ -43,5 +37,25 @@ final class DashboardReport
             'total'=>$total,'workstreams'=>$workstreams,'done'=>$done,'task_total'=>$taskTotal,
             'attention'=>$attention,'visits'=>array_slice($upcoming,0,6),'activity'=>$activity,'today'=>$today
         ];
+    }
+
+    private static function activityQuery(): string
+    {
+        return "SELECT a.id,s.id AS store_id,s.name AS store_name,s.code,a.actor_name,a.created_at,a.action,st.title
+            FROM task_audit a JOIN subtasks st ON st.id=a.subtask_id JOIN tasks t ON t.id=st.task_id JOIN stores s ON s.id=t.store_id
+            UNION ALL SELECT n.id,s.id,s.name,s.code,n.author_name,n.created_at,'pm_note','Project Manager note added'
+            FROM store_pm_notes n JOIN stores s ON s.id=n.store_id
+            UNION ALL SELECT s.id,s.id,s.name,s.code,'',s.created_at,'store_created','Store created' FROM stores s";
+    }
+    public static function activity(ProjectRepository $project,array $actor,int $page=1,int $perPage=10): array
+    {
+        if(!Access::atLeast($actor,'pm'))throw new AccessDenied('Only a PM or Admin can view rollout activity.');
+        $perPage=in_array($perPage,[5,10,50,100],true)?$perPage:10;
+        $query=self::activityQuery();
+        $total=(int)$project->rows('SELECT COUNT(*) AS total FROM ('.$query.') events')[0]['total'];
+        $pages=max(1,(int)ceil($total/$perPage));$page=max(1,min($page,$pages));
+        $offset=($page-1)*$perPage;
+        $rows=$project->rows('SELECT * FROM ('.$query.') events ORDER BY created_at DESC,id DESC,action DESC LIMIT '.$perPage.' OFFSET '.$offset);
+        return ['rows'=>$rows,'total'=>$total,'page'=>$page,'pages'=>$pages,'per_page'=>$perPage];
     }
 }
