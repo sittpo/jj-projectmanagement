@@ -225,3 +225,18 @@ document.querySelectorAll('.pm-note').forEach(note=>{
 });
 
 document.querySelector('.activity-page-size select')?.addEventListener('change',event=>event.target.form.requestSubmit());
+
+document.querySelectorAll('.unifi-order-form').forEach(form=>{
+    const select=form.querySelector('select'),feedback=form.querySelector('.unifi-feedback');
+    let saved=select.value;
+    select.addEventListener('change',async()=>{
+        const data=new FormData(form);select.disabled=true;feedback.textContent='Saving…';
+        try{
+            const url=new URL(form.getAttribute('action'),location.href);url.searchParams.set('order_ajax','1');
+            const response=await fetch(url,{method:'POST',body:data});
+            if(!response.ok||response.redirected||!(await response.json()).saved)throw new Error('Save failed');
+            saved=select.value;feedback.textContent='Saved';
+        }catch{select.value=saved;feedback.textContent='Could not save. Please reload and try again.';}
+        finally{select.disabled=false;}
+    });
+});

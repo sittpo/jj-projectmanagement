@@ -266,6 +266,16 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await page.getByLabel('Activities per page').selectOption('100');
     await page.waitForURL('**per_page=100');
     assert.equal((await worker.ctx.request.get(route('activity'))).status(),403);
+
+    await pm.tab.goto(route('store',storeId));
+    await pm.tab.getByLabel('UniFi order',{exact:true}).selectOption('ordered');
+    await pm.tab.locator('.unifi-feedback').filter({hasText:'Saved'}).waitFor();
+    await pm.tab.reload();
+    assert.equal(await pm.tab.getByLabel('UniFi order',{exact:true}).inputValue(),'ordered');
+    assert.equal((await post(worker.ctx,'store',{action:'unifi-order',unifi_order:'delivered'},storeId)).status(),403);
+    await worker.tab.goto(route('store',storeId));
+    assert.equal(await worker.tab.locator('.unifi-order-form').count(),0);
+
     await page.goto(route('users'));
     for(const account of [worker,lead,outsider,pm])await account.ctx.close();
     console.log('PASS: workflow UI, company isolation, ordering, store creation, photo validation/authorization, PM sign-off, and responsive report preview.');

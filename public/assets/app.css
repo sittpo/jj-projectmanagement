@@ -1442,3 +1442,7 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .activity-pagination form {display:flex;align-items:center;gap:8px}
 .activity-pagination input {width:75px}
 .activity-pagination input,.activity-page-size select {padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
+
+.unifi-panel {display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:20px;margin:20px 0}
+.unifi-order-form {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.unifi-order-form select {padding:10px 14px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);min-width:160px}

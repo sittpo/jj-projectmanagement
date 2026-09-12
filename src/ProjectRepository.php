@@ -2,6 +2,31 @@
 declare(strict_types=1);
 final class ProjectRepository
 {
+    public const UNIFI_STATES=['not_ordered'=>'Not ordered','ordered'=>'Ordered','shipped'=>'Shipped','delivered'=>'Delivered'];
+    public function setUnifiOrder(array $actor,string $storeId,string $state): void
+    {
+        if(!Access::atLeast($actor,'pm'))throw new AccessDenied('Only a PM or Admin can update UniFi orders.');
+        Access::store($this->db,$actor,$storeId);
+        if(!isset(self::UNIFI_STATES[$state]))throw new DomainException('Choose a valid UniFi order state.');
+        $this->execute('UPDATE stores SET unifi_order=? WHERE id=?',[$state,$storeId]);
+    }
+    public static function workingDaysUntil(string $today,string $installation): int
+    {
+        $start=new DateTimeImmutable($today);$end=new DateTimeImmutable($installation);
+        if($end<=$start)return 0;
+        $days=(int)$start->diff($end)->days;$weeks=intdiv($days,7);$count=$weeks*5;
+        for($i=1;$i<=$days%7;$i++)if((int)$start->modify('+'.$i.' days')->format('N')<=5)$count++;
+        return $count;
+    }
+    public static function unifiAttention(array $store,string $today): ?string
+    {
+        if($store['finished']||!$store['target_date'])return null;
+        $days=self::workingDaysUntil($today,$store['target_date']);
+        $state=$store['unifi_order']??'not_ordered';
+        if($days<3&&$state!=='delivered')return 'UniFi not delivered · '.$days.' working days to installation';
+        if($days<7&&$state==='not_ordered')return 'UniFi not ordered · '.$days.' working days to installation';
+        return null;
+    }
     public const CATEGORIES=['network'=>'Networking','audio'=>'Audio','dvr'=>'DVR','rack'=>'Rack cabinet'];
     public function __construct(public PDO $db) {}
     public function rows(string $sql,array $args=[]): array { $q=$this->db->prepare($sql);$q->execute($args);return $q->fetchAll(); }

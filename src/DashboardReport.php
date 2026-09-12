@@ -14,8 +14,12 @@ final class DashboardReport
         $overdue=array_values(array_filter($stores,fn($s)=>!$s['finished']&&$s['target_date']&&$s['target_date']<$today));
         $attention=[];
         foreach($stores as $store){
-            if(!$store['target_date'])$attention[]=$store+['reason'=>'Installation date missing'];
-            elseif(!$store['finished']&&$store['target_date']<$today)$attention[]=$store+['reason'=>'Overdue · '.$store['target_date']];
+            $reasons=[];
+            if(!$store['target_date'])$reasons[]='Installation date missing';
+            elseif(!$store['finished']&&$store['target_date']<$today)$reasons[]='Overdue · '.$store['target_date'];
+            $orderReason=ProjectRepository::unifiAttention($store,$today);
+            if($orderReason)$reasons[]=$orderReason;
+            if($reasons)$attention[]=$store+['reason'=>implode(' · ',$reasons)];
         }
         $streams=$project->rows("SELECT t.category,COUNT(*) AS total,SUM(CASE WHEN EXISTS(SELECT 1 FROM subtasks st WHERE st.task_id=t.id)
             THEN NOT EXISTS(SELECT 1 FROM subtasks st WHERE st.task_id=t.id AND (st.complete=0 OR st.signed_at IS NULL))

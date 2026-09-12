@@ -13,3 +13,5 @@
 <h2 class="section-heading">Installation reminder</h2><div class="form-grid"><label>Reminder date override<input type="date" name="reminder_date" aria-label="Reminder date override" value="<?= e($form['reminder_date']??'') ?>"><small>Leave empty to use the global schedule: <?= $project->reminderDays() ?> days before installation.</small></label></div>
 <label class="checkbox-label"><input type="checkbox" name="reminders_enabled" <?= ($form['reminders_enabled']??false)?'checked':'' ?>>Enable reminders to the owner and contact email addresses</label>
 <div class="form-actions"><button class="button primary">Save store</button></div></form>
+
+<?php if(isset($store))require __DIR__.'/store-unifi.php'; ?>

@@ -9,6 +9,11 @@ if(in_array($page,$projectPages,true)){
     if($page==='smtp'&&!Access::atLeast($user,'admin')){http_response_code(403);$page='forbidden';}
     if($page==='team'&&!Access::atLeast($user,'contractor_admin')){http_response_code(403);$page='forbidden';}
     try{
+        if($page==='store'&&$isPost&&($_POST['action']??'')==='unifi-order'){
+            $project->setUnifiOrder($user,$id??'',ProjectRepository::text($_POST,'unifi_order',20,true));
+            if(($_GET['order_ajax']??'')==='1'){header('Content-Type: application/json');echo json_encode(['saved'=>true]);exit;}
+            $_SESSION['flash']='UniFi order updated.';redirect('store',['id'=>$id]);
+        }
         if($page==='store'&&$isPost&&in_array($_POST['action']??'',['add-pm-note','pm-note-report','delete-pm-note'],true)){
             if($_POST['action']==='add-pm-note')$project->addPmNote($user,$id??'',$_POST);
             elseif($_POST['action']==='delete-pm-note'){

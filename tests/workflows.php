@@ -126,7 +126,7 @@ try{
 
     $live=DashboardReport::live($p,$actors['admin']);
     verify((int)$live['metrics'][0]['value']===1&&(int)$live['total']===6,'Dashboard uses actual complete and created store counts');
-    verify(count($live['attention'])===2,'Dashboard flags missing dates and overdue unfinished stores');
+    verify(count(array_filter($live['attention'],fn($item)=>str_contains($item['reason'],'Installation date missing')||str_contains($item['reason'],'Overdue')))===2,'Dashboard flags missing dates and overdue unfinished stores');
     verify(count($live['visits'])===3,'Dashboard visits include today and future unfinished stores');
     verify(count($live['activity'])>0,'Dashboard reads recorded activity');
     denied(fn()=>DashboardReport::live($p,$actors['worker']),'Contractor cannot access global dashboard data');
@@ -138,6 +138,28 @@ try{
     verify(!array_intersect(array_column($first['rows'],'id'),array_column($second['rows'],'id')),'Activity pages do not overlap');
     verify(DashboardReport::activity($p,$actors['admin'],999,50)['page']===1,'Out-of-range activity page is clamped');
     denied(fn()=>DashboardReport::activity($p,$actors['worker']),'Contractors cannot read global activity history');
+
+    verify(ProjectRepository::workingDaysUntil('2026-09-11','2026-09-14')===1,'Working days skip weekends');
+    verify(ProjectRepository::workingDaysUntil('2026-09-14','2026-09-14')===0,'Installation today has zero working days remaining');
+    $fixture=['finished'=>0,'target_date'=>'2026-09-23','unifi_order'=>'not_ordered'];
+    verify(ProjectRepository::unifiAttention($fixture,'2026-09-14')===null,'Exactly seven working days does not warn');
+    $fixture['target_date']='2026-09-22';
+    verify(ProjectRepository::unifiAttention($fixture,'2026-09-14')!==null,'Six working days warns for not ordered');
+    $fixture['unifi_order']='ordered';
+    verify(ProjectRepository::unifiAttention($fixture,'2026-09-14')===null,'Ordered clears the seven-day warning');
+    $fixture['target_date']='2026-09-17';
+    verify(ProjectRepository::unifiAttention($fixture,'2026-09-14')===null,'Exactly three working days does not warn for ordered');
+    $fixture['target_date']='2026-09-16';
+    foreach(['not_ordered','ordered','shipped'] as $state){$fixture['unifi_order']=$state;verify(ProjectRepository::unifiAttention($fixture,'2026-09-14')!==null,'Two working days warns for '.$state);}
+    $fixture['unifi_order']='delivered';
+    verify(ProjectRepository::unifiAttention($fixture,'2026-09-14')===null,'Delivered clears imminent installation warning');
+    $fixture['finished']=1;$fixture['unifi_order']='not_ordered';
+    verify(ProjectRepository::unifiAttention($fixture,'2026-09-14')===null,'Finished store has no UniFi warning');
+    $p->setUnifiOrder($actors['manager'],$storeId,'shipped');
+    verify(Access::store($db,$actors['manager'],$storeId)['unifi_order']==='shipped','PM order state persists');
+    denied(fn()=>$p->setUnifiOrder($actors['worker'],$storeId,'delivered'),'Contractor cannot update order');
+    denied(fn()=>$p->setUnifiOrder($actors['admin'],$storeId,'invalid'),'Invalid order state rejected');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);
