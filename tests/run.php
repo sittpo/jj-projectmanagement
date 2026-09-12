@@ -12,8 +12,20 @@ function rejects(callable $callback, string $message): void {
     try { $callback(); } catch (Throwable) { check(true, $message); return; }
     throw new RuntimeException("Expected rejection: $message");
 }
-$db = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
-$db->exec('PRAGMA foreign_keys=ON');
+$testConfig = require dirname(__DIR__) . '/src/bootstrap.php';
+$useMariaDb = getenv('TEST_MARIADB') === '1' || (getenv('TEST_MARIADB') !== '0' && $testConfig['driver'] === 'mysql');
+if ($useMariaDb) {
+    require __DIR__ . '/DatabaseSandbox.php';
+    $testName = 'jjtest_' . bin2hex(random_bytes(5));
+    $db = DatabaseSandbox::create($testConfig, $testName);
+    register_shutdown_function(static function () use ($testConfig, $testName): void {
+        DatabaseSandbox::drop($testConfig, $testName);
+    });
+    echo 'Testing MariaDB ' . $db->query('SELECT VERSION()')->fetchColumn() . "\n";
+} else {
+    $db = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+    $db->exec('PRAGMA foreign_keys=ON');
+}
 Schema::migrate($db);
 Schema::migrate($db);
 $users = new UserRepository($db);
@@ -32,12 +44,12 @@ $updated = $users->find($worker['id']);
 check((int)$updated['active'] === 0 && (int)$updated['session_version'] > (int)$worker['session_version'], 'Deactivation invalidates existing sessions');
 check($updated['password_hash'] === $worker['password_hash'], 'Blank password preserves existing password');
 $store = Schema::id();
-$db->prepare('INSERT INTO stores (id,code,name,city,created_at) VALUES (?,?,?,?,?)')->execute([$store,'TEST-01','Test Store','Test City',gmdate('c')]);
+$db->prepare('INSERT INTO stores (id,code,name,city,created_at) VALUES (?,?,?,?,?)')->execute([$store,'TEST-01','Test Store','Test City',gmdate('Y-m-d\TH:i:s\Z')]);
 $db->prepare('INSERT INTO store_assignments (store_id,user_id) VALUES (?,?)')->execute([$store,$worker['id']]);
 $task = Schema::id();
-$db->prepare('INSERT INTO tasks (id,store_id,category,status,created_at) VALUES (?,?,?,?,?)')->execute([$task,$store,'network','completed',gmdate('c')]);
+$db->prepare('INSERT INTO tasks (id,store_id,category,status,created_at) VALUES (?,?,?,?,?)')->execute([$task,$store,'network','completed',gmdate('Y-m-d\TH:i:s\Z')]);
 $photo = Schema::id();
-$db->prepare('INSERT INTO task_photos (id,task_id,uploaded_by,storage_key,original_name,mime_type,created_at) VALUES (?,?,?,?,?,?,?)')->execute([$photo,$task,$worker['id'],'test/photo.jpg','photo.jpg','image/jpeg',gmdate('c')]);
+$db->prepare('INSERT INTO task_photos (id,task_id,uploaded_by,storage_key,original_name,mime_type,created_at) VALUES (?,?,?,?,?,?,?)')->execute([$photo,$task,$worker['id'],'test/photo.jpg','photo.jpg','image/jpeg',gmdate('Y-m-d\TH:i:s\Z')]);
 $export = dirname(__DIR__) . '/storage/test-export-' . bin2hex(random_bytes(5)) . '.json';
 $invalid = $export . '.invalid';
 try {
@@ -49,6 +61,20 @@ try {
     check($db->query('SELECT name FROM stores')->fetchColumn() === 'Test Store', 'Data round trip restores store data');
     check($db->query('SELECT task_id FROM task_photos')->fetchColumn() === $task, 'Stable IDs and relationships survive export/import');
     check((int)$users->find($admin['id'])['session_version'] !== (int)$admin['session_version'], 'Import invalidates old sessions');
+
+    if ($useMariaDb) {
+        $sqlite = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
+        $sqlite->exec('PRAGMA foreign_keys=ON');
+        Schema::migrate($sqlite);
+        (new DataTransfer($sqlite))->import($export, 'dev');
+        check($sqlite->query('SELECT task_id FROM task_photos')->fetchColumn() === $task, 'MariaDB-to-SQLite import preserves relationships');
+        $crossExport = $export . '.cross';
+        try {
+            (new DataTransfer($sqlite))->export($crossExport);
+            $transfer->import($crossExport, 'dev');
+            check($db->query('SELECT task_id FROM task_photos')->fetchColumn() === $task, 'SQLite-to-MariaDB import preserves relationships');
+        } finally { if (is_file($crossExport)) { unlink($crossExport); } }
+    }
     $data = json_decode(file_get_contents($export), true);
     $data['tables']['task_photos'][0]['task_id'] = 'missing-task';
     file_put_contents($invalid, json_encode($data));

@@ -7,9 +7,13 @@ const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const php = process.env.PHP_BINARY || path.join(root, '.runtime/php/php.exe');
 const suffix = crypto.randomBytes(5).toString('hex');
-const database = path.join(root, 'storage', 'browser-test-' + suffix + '.sqlite');
+const driverResult = spawnSync(php, ['tests/database.php','driver'], {cwd:root,env:process.env,encoding:'utf8'});
+if (driverResult.status !== 0) throw new Error(driverResult.stderr || 'Cannot read test configuration.');
+const maria = process.env.TEST_MARIADB === '1' || (process.env.TEST_MARIADB !== '0' && driverResult.stdout.trim() === 'mysql');
+const database = maria ? 'jjtest_' + suffix : path.join(root, 'storage', 'browser-test-' + suffix + '.sqlite');
 const password = crypto.randomBytes(15).toString('hex');
-const env = { ...process.env, APP_ENV: 'dev', DB_CONNECTION: 'sqlite', DB_DATABASE: database, DEV_ADMIN_PASSWORD: password };
+const env = { ...process.env, APP_ENV: 'dev', DB_CONNECTION: maria ? 'mysql' : 'sqlite', DB_DATABASE: database, DEV_ADMIN_PASSWORD: password };
+let testDatabaseCreated = false;
 let server, browser;
 let serverError = '';
 const base = 'http://127.0.0.1:8081';
@@ -18,6 +22,11 @@ function command(args) {
     if (result.status !== 0) throw new Error(result.stderr || result.stdout);
 }
 (async () => {
+    if (maria) {
+        const result = spawnSync(php, ['tests/database.php', 'create', database], {cwd:root,env:process.env,encoding:'utf8'});
+        if (result.status !== 0) throw new Error(result.stderr || result.stdout);
+        testDatabaseCreated = true;
+    }
     command(['scripts/console.php', 'migrate']);
     command(['scripts/console.php', 'seed-admin']);
     server = spawn(php, ['-S', '127.0.0.1:8081', '-t', 'public'], { cwd: root, env, windowsHide: true, stdio: ['ignore','ignore','pipe'] });
@@ -113,5 +122,8 @@ function command(args) {
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{
     if(browser) await browser.close();
     if(server) { server.kill(); await new Promise(r=>server.exitCode!==null?r():server.once('exit',r)); }
-    if(fs.existsSync(database)) fs.unlinkSync(database);
+    if (maria && testDatabaseCreated) {
+        const result = spawnSync(php, ['tests/database.php','drop',database], {cwd:root,env:process.env,encoding:'utf8'});
+        if (result.status !== 0) { console.error(result.stderr); process.exitCode=1; }
+    } else if (!maria && fs.existsSync(database)) fs.unlinkSync(database);
 });

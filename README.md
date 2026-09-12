@@ -1,33 +1,51 @@
 # JJ Project Management
 
-PHP 8.4 application for a store equipment rollout. Local development uses `dev` and `APP_ENV=dev`. All interface text and documentation are English.
+PHP 8.4 application for a store equipment rollout. Local development uses `dev`, `APP_ENV=dev`, and **MariaDB 11.8.6**, matching the intended production database version. All interface text and documentation are English.
 
 ## Available now
 
-- Responsive dashboard with clearly labeled sample statistics, workstreams, visits, and activity.
-- Teal/green design, light and dark themes, and a collapsible mobile sidebar.
+- Responsive teal/green dashboard with sample statistics, workstreams, visits, and activity.
+- Persistent light/dark themes and a collapsible mobile sidebar.
 - Username/password sign-in, hashed passwords, CSRF checks, session rotation, and sign-in throttling.
-- Admin-only user management: create/edit users, change passwords and roles, deactivate/reactivate accounts. Deactivation preserves references for future reports.
-- Administrator, project manager, and contractor roles. Contractors see an empty workspace until store assignment is implemented; sample project-wide reports are available only to administrators and PMs.
+- Admin-only user creation/editing, passwords, roles, deactivation and reactivation.
+- Administrator, project manager, and contractor roles. Contractors see an empty workspace until store assignment is implemented.
 - CSV sample summary from the same report provider used by the dashboard.
-- Versioned schema and portable JSON data export/import commands.
+- Versioned schema and portable data export/import.
 
-The local development administrator has username `admin`. Its requested password was set locally and is not stored in source control.
+The development administrator is `admin`. The requested password is set locally and is not stored in source control.
 
 ## Local development (Windows)
 
-From this directory:
+The current workstation is configured with a running MariaDB service, database `jj_project_management_dev`, and dedicated database account `jj_pm_dev`. Its generated password is stored only in the ignored `.env`. The application does not use root.
 
 ```powershell
-.\scripts\setup.ps1
 .\scripts\dev.ps1
 ```
 
-Open http://127.0.0.1:8080. Save changes and refresh. Stop the foreground server with Ctrl+C. Use `-Port 8081` if needed.
+Open http://127.0.0.1:8080. Save changes and refresh. Stop the foreground server with Ctrl+C. Use `-Port 8081` if needed; browser tests use port 8081.
 
-Setup downloads official PHP 8.4.25 x64, verifies its published SHA-256, installs it in `.runtime/php`, creates `.env` if missing, and runs schema migrations. It does not change system PHP or PATH. The Microsoft Visual C++ 2022 x64 runtime is required.
+For a fresh workstation:
 
-To create the initial administrator on a fresh dev database, supply a password for the seed command:
+1. Install MariaDB 11.8.6 and provision the database/account below.
+2. Copy `.env.example` to `.env` and enter the dedicated database password.
+3. Run `.\scripts\setup.ps1` to install project-local PHP and run migrations.
+4. Seed a development administrator if needed, then start the dev server.
+
+Example SQL to run as a local MariaDB administrator, choosing a private password:
+
+```sql
+CREATE DATABASE jj_project_management_dev
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'jj_pm_dev'@'localhost' IDENTIFIED BY 'choose-a-private-password';
+GRANT ALL PRIVILEGES ON jj_project_management_dev.* TO 'jj_pm_dev'@'localhost';
+GRANT ALL PRIVILEGES ON `jjtest\_%`.* TO 'jj_pm_dev'@'localhost';
+```
+
+The last grant permits disposable test databases with the `jjtest_` prefix. It grants no global server privileges. Tests generate random names, create their own databases, and remove them afterward.
+
+Setup downloads official PHP 8.4.25 x64, verifies its SHA-256, and installs it in `.runtime/php` without changing system PHP or PATH. It requires the Microsoft Visual C++ 2022 x64 runtime. Database configuration must be ready before migrations run.
+
+To seed an administrator on a fresh dev database:
 
 ```powershell
 $env:DEV_ADMIN_PASSWORD = Read-Host 'Development administrator password' -MaskInput
@@ -44,70 +62,62 @@ The seed command refuses production and refuses to overwrite an existing admin u
 
 | Location | Responsibility |
 | --- | --- |
-| `public/index.php` | Request handling, authentication and permission checks |
-| `public/assets/` | Shared CSS, theme and mobile navigation controls |
+| `public/index.php` | Requests, authentication and permission checks |
+| `public/assets/` | Shared styling and interface controls |
 | `views/` | Shared layout and individual page templates |
 | `src/UserRepository.php` | User persistence and validation |
-| `src/Auth.php` | Sign-in, throttling, current-session validation |
-| `src/DashboardReport.php` | Sample report model used by both HTML and CSV |
-| `src/Schema.php` | Versioned schema and parent-first transfer table registry |
-| `src/DataTransfer.php` | Transactional portable data export/import |
-| `scripts/console.php` | CLI migrations, dev seeding and data transfer |
-| `tests/` | Repository, transfer and isolated HTTP/browser checks |
+| `src/Auth.php` | Sign-in, throttling and session validation |
+| `src/DashboardReport.php` | Sample report model for HTML and CSV |
+| `src/Schema.php` | Versioned schema and transfer table registry |
+| `src/DataTransfer.php` | Transactional data export/import |
+| `scripts/console.php` | Migrations, dev seeding and data transfer |
+| `tests/` | Repository, transfer and isolated browser checks |
 
-Only `public/` is served. Configuration, application code, database files, logs, and data exports stay outside the document root. Keep private files under `storage/`, which is ignored by Git.
+Only `public/` is served. Private configuration, logs, exports and backups stay outside it.
 
-## Database design and production-to-dev transfers
+## Database and production-to-dev transfers
 
-Production targets MariaDB on Debian 13; local development currently uses SQLite through PDO. Tables use application-generated stable string IDs, explicit foreign keys, UTC timestamps, and simple SQL types. Relationships are normalized:
+MariaDB is the standard database for dev and production. The schema uses InnoDB, utf8mb4, stable application-generated string IDs, explicit foreign keys and UTC timestamps.
 
-- `users`: sign-in identity, role, active status and session version.
+- `users`: identity, role, active status and session version.
 - `stores`: store code, location and target date.
-- `store_assignments`: many-to-many relationships between stores and users.
+- `store_assignments`: store-to-user relationships.
 - `tasks`: per-store networking, audio, DVR and rack work.
-- `task_photos`: task and uploader references with storage metadata.
+- `task_photos`: task/uploader references and file metadata.
 - `schema_versions` and `login_attempts`: operational tables, excluded from data exports.
 
-Store/task/photo tables are ready for the next phase, but their interfaces are not implemented and contain no sample dashboard records. Dashboard sample data is intentionally isolated in its report provider. Future database-backed reports can replace that provider without changing the shared layout.
+Store/task/photo interfaces are subsequent phases. Sample dashboard data remains separate from application tables.
 
-Use the matching application/schema version on both environments. Run migrations before transferring data:
+Use the matching application/schema version in production and dev. Export on the production server:
 
 ```bash
-# On the production server, using its environment configuration:
-php scripts/console.php migrate
 php scripts/console.php data:export /private/path/rollout.json
 ```
 
-Copy the JSON into local `storage/`, then:
+Copy the JSON to local `storage/`, then:
 
 ```powershell
 .\.runtime\php\php.exe scripts/console.php migrate
 .\.runtime\php\php.exe scripts/console.php data:import storage/rollout.json --replace
 ```
 
-Import is restricted to `APP_ENV=dev`, requires `--replace`, and automatically saves the current dev data to a new file in `storage/` first. It replaces registered application tables in a transaction, preserving IDs and relationships, and rolls back on invalid data. Imported session versions are randomized to invalidate existing sessions. Local environment configuration remains unchanged.
+Import requires `APP_ENV=dev` and `--replace`. It first saves the current dev data to `storage/`, then replaces application records in a transaction. IDs and relationships are preserved, invalid data rolls back, and imported session versions are randomized to invalidate existing sessions. Local configuration is unchanged.
 
-Exports include user details and password hashes; keep them private and out of Git. Imported users retain their passwords and roles. Actual photo files are not embedded in JSON: when uploads are implemented, copy the private upload directory alongside the database export, preserving storage keys. This is an application-level transfer format, not a raw MariaDB SQL dump.
+Exports contain user details and password hashes; keep them private and out of Git. Imported users retain their passwords and roles. Photo files are not embedded: when uploads are implemented, copy the private upload directory separately while preserving storage keys.
 
-SQLite migration, round-trip transfer, foreign-key validation, and rollback are tested. Live MariaDB migration and cross-engine transfer still require verification before production deployment.
+MariaDB migrations, relationships, transactional rollback, authentication, user management, and browser flows have been tested on 11.8.6. The portable transfer format has also been tested in both directions between MariaDB and SQLite.
+
+### Earlier SQLite migration
+
+The existing SQLite database is preserved at `storage/dev.sqlite`. The migration also saved a JSON export and the former configuration under `storage/sqlite-before-mariadb-*` and `storage/env-before-mariadb-*`. These are historical backups, not the active database.
+
+`scripts/migrate-to-mariadb.php` supports the one-time migration of an older SQLite dev checkout. It reads a local root password file from `storage/`, refuses existing target databases/accounts, preserves the source, compares migrated rows, and writes a candidate configuration to `storage/mariadb.env`. Activate that candidate only after verification. Provision the test-database grant above if needed. Remove the temporary root-password file afterward.
 
 ## Production target
 
-Use Debian 13, nginx, PHP 8.4-FPM and MariaDB. Point nginx at `public/` and pass PHP requests to PHP-FPM. The built-in server is only for local development.
+Use Debian 13, nginx, PHP 8.4-FPM and MariaDB 11.8.6. Point nginx at `public/` and use HTTPS. Enable `pdo_mysql` and `mbstring`. Provision a dedicated production database/account, configure `APP_ENV=production`, and run migrations.
 
-Configure environment variables or a private `.env`:
-
-```ini
-APP_ENV=production
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=jj_project_management
-DB_USERNAME=jj_app
-DB_PASSWORD="replace-with-a-secret"
-```
-
-Environment variables take precedence. Enable `pdo_mysql` and `mbstring`, provision a dedicated MariaDB database/user, run migrations, and configure HTTPS. Production account provisioning, Entra ID, deployment, store assignment screens, task workflows, and photo uploads are subsequent phases.
+The database version now matches locally. Debian/nginx deployment and environment-specific settings still need verification on the production server. Entra ID, store assignment screens, task workflows and photo uploads are subsequent phases.
 
 ## Verification
 
@@ -116,15 +126,12 @@ Environment variables take precedence. Enable `pdo_mysql` and `mbstring`, provis
 node tests/browser.cjs
 ```
 
-Browser tests require Playwright and Microsoft Edge, use a temporary SQLite database and a server on port 8081, and generate screenshots in `storage/`. They never modify the normal dev users or database. Set `PHP_BINARY` to override the local PHP executable. The current workstation uses the bundled Playwright installation through `NODE_PATH`.
+Both suites automatically use MariaDB when configured in `.env`. They use disposable databases, never the application database. Set `TEST_MARIADB=0` only when explicitly checking the legacy SQLite path.
+
+Browser tests require Playwright and Microsoft Edge, run a temporary server on port 8081, and save screenshots under `storage/`. Set `PHP_BINARY` to override PHP. This workstation uses bundled Playwright through `NODE_PATH`.
 
 ## Git
 
 Remote: https://github.com/sittpo/jj-projectmanagement.git
 
-```powershell
-git switch dev
-git push -u origin dev
-```
-
-Push development work to `origin/dev`. Only merge or push to `master` when explicitly requested. Identity is configured for this repository only. Never commit `.env`, credentials, databases, runtime files, exports, or uploads.
+Push development work to `origin/dev`. Only merge or push to `master` when explicitly requested. Git identity is repository-local. Never commit credentials, `.env`, databases, runtime files, exports or uploads.
