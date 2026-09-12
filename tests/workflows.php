@@ -258,6 +258,24 @@ try{
     $p->execute("UPDATE stores SET city='Changed externally' WHERE id=?",[$imported['id']]);
     denied(fn()=>$import->apply($actors['admin'],$draft,$draft['token']),'Changed data requires new preview before import');
 
+
+    require_once dirname(__DIR__).'/src/StoreDeletion.php';
+    $deletion=new StoreDeletion($p,$private.'/uploads');
+    denied(fn()=>$deletion->delete($actors['worker'],[$storeId]),'Contractors cannot delete stores');
+    denied(fn()=>$deletion->delete($actors['admin'],[]),'Empty bulk deletion rejected');
+    denied(fn()=>$deletion->delete($actors['admin'],[$storeId,Schema::id()]),'Missing selection rejects entire deletion');
+    verify((bool)$p->rows('SELECT id FROM stores WHERE id=?',[$storeId]),'Rejected deletion preserves stores');
+    mkdir($private.'/uploads',0700,true);$bulkPhoto=Schema::id();
+    file_put_contents($private.'/uploads/'.$bulkPhoto.'.png','bulk test');
+    $bulkStep=$steps->list($storeId)[0];
+    $p->execute('INSERT INTO subtask_photos(id,subtask_id,uploaded_by,storage_key,original_name,mime_type,created_at) VALUES(?,?,?,?,?,?,?)',[$bulkPhoto,$bulkStep['id'],$actors['worker']['id'],$bulkPhoto.'.png','bulk.png','image/png',gmdate('Y-m-d\\TH:i:s\\Z')]);
+    $result=$deletion->delete($actors['manager'],[$storeId,$overrideId]);
+    verify($result['deleted']===2&&!$p->rows('SELECT id FROM stores WHERE id IN (?,?)',[$storeId,$overrideId]),'PM can delete multiple selected stores');
+    verify(!$p->rows('SELECT id FROM tasks WHERE store_id=?',[$storeId])&&!$p->rows('SELECT id FROM manual_reminder_log WHERE store_id=?',[$storeId]),'Dependent task and reminder data removed');
+    verify(!is_file($private.'/uploads/'.$bulkPhoto.'.png'),'Bulk deletion removes uploaded files');
+    verify((bool)$p->rows('SELECT id FROM stores WHERE id=?',[$sortIds[0]]),'Unselected stores retained');
+    rmdir($private.'/uploads');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

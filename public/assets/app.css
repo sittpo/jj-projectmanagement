@@ -1488,3 +1488,8 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .import-preview {margin-top:24px}
 .import-actions {display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
 .import-preview td {overflow-wrap:anywhere;max-width:400px}
+
+.store-bulk-bar {display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 22px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.store-delete-selected {color:#d45d68;border-color:currentColor}
+.stores-panel .store-select-cell {width:44px;min-width:44px}
+.store-select,.store-select-all {width:18px;height:18px;accent-color:var(--teal)}

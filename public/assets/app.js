@@ -283,3 +283,37 @@ document.querySelectorAll('.photo-delete-form').forEach(form=>{
 document.querySelectorAll('.prereq-up,.prereq-down').forEach(button=>button.addEventListener('click',()=>{const row=button.closest('tr');if(button.classList.contains('prereq-up')){const previous=row.previousElementSibling;if(previous)row.parentNode.insertBefore(row,previous);}else{const next=row.nextElementSibling;if(next)row.parentNode.insertBefore(next,row);}}));
 
 document.querySelector('.csv-picker-input')?.addEventListener('change',event=>{document.querySelector('.csv-selected').textContent=event.target.files[0]?.name||'No CSV selected';});
+
+(() => {
+    const toggle=document.querySelector('.store-multi-toggle'),form=document.querySelector('#store-bulk-delete');
+    if(!toggle||!form)return;
+    const results=document.querySelector('#store-results'),remove=form.querySelector('button'),count=form.querySelector('.store-selection-count');
+    let active=false;
+    const boxes=()=>Array.from(results.querySelectorAll('.store-select'));
+    const update=()=>{
+        const all=boxes(),selected=all.filter(box=>box.checked),header=results.querySelector('.store-select-all');
+        count.textContent=selected.length+' stores selected';remove.disabled=!selected.length;
+        if(header){header.checked=all.length>0&&selected.length===all.length;header.indeterminate=selected.length>0&&selected.length<all.length;header.disabled=!all.length;}
+    };
+    const render=()=>{results.querySelectorAll('.store-select-cell').forEach(cell=>cell.hidden=!active);update();};
+    toggle.addEventListener('click',()=>{
+        active=!active;toggle.setAttribute('aria-pressed',String(active));toggle.textContent=active?'Done':'Multi-edit';form.hidden=!active;
+        boxes().forEach(box=>box.checked=false);render();
+    });
+    results.addEventListener('change',event=>{
+        if(event.target.matches('.store-select-all'))boxes().forEach(box=>box.checked=event.target.checked);
+        update();
+    });
+    new MutationObserver(render).observe(results,{childList:true});
+    const clear=()=>{boxes().forEach(box=>box.checked=false);update();};
+    document.querySelector('#store-search').addEventListener('input',clear);
+    document.querySelector('.store-preference-form').addEventListener('change',clear);
+    form.addEventListener('submit',event=>{
+        const selected=boxes().filter(box=>box.checked);
+        if(!selected.length||results.getAttribute('aria-busy')==='true'){event.preventDefault();return;}
+        const names=selected.slice(0,6).map(box=>box.dataset.label).join('\n');
+        if(!window.confirm('Permanently delete '+selected.length+' selected store(s)?\n\n'+names+(selected.length>6?'\n…':'')+'\n\nThis deletes their tasks, notes, photos, assignments and reminder history. This cannot be undone.')){event.preventDefault();return;}
+        const confirmation=document.createElement('input');confirmation.type='hidden';confirmation.name='confirmed';confirmation.value='1';form.append(confirmation);
+        remove.disabled=true;remove.textContent='Deleting…';
+    });
+})();

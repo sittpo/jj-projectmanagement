@@ -9,6 +9,16 @@ if(in_array($page,$projectPages,true)){
     if($page==='smtp'&&!Access::atLeast($user,'admin')){http_response_code(403);$page='forbidden';}
     if($page==='team'&&!Access::atLeast($user,'contractor_admin')){http_response_code(403);$page='forbidden';}
     try{
+        if($page==='stores'&&$isPost&&($_POST['action']??'')==='delete-stores'){
+            if(($_POST['confirmed']??'')!=='1')throw new DomainException('Confirm before deleting stores.');
+            $ids=$_POST['store_ids']??[];
+            if(!is_array($ids))throw new DomainException('Invalid store selection.');
+            require_once __DIR__.'/StoreDeletion.php';
+            $result=(new StoreDeletion($project,getenv('UPLOAD_ROOT')?:dirname(__DIR__).'/storage/uploads'))->delete($user,$ids);
+            $_SESSION['flash']=$result['deleted'].' stores deleted.';
+            if($result['cleanup_failed'])$_SESSION['flash_error']='Stores deleted, but some private photo files could not be removed. Contact your administrator for cleanup.';
+            redirect('stores');
+        }
         if($page==='prerequisites'&&$isPost){
             $repository=new PrerequisiteRepository($project);
             $action=ProjectRepository::text($_POST,'action',30,true);

@@ -400,6 +400,28 @@ module.exports=async({page,context,browser,base,password,root})=>{
     assert.equal((await pm.ctx.request.get(route('store-import'))).status(),403);
     assert.equal((await worker.ctx.request.get(route('store-import')+'&sample=1')).status(),403);
 
+
+    await page.goto(route('stores'));
+    await page.getByRole('searchbox',{name:'Search stores'}).fill('Filter');
+    await page.getByRole('button',{name:'Search',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('#store-results tbody tr').length===4);
+    await page.getByRole('button',{name:'Multi-edit',exact:true}).click();
+    await page.getByLabel('Select all displayed stores',{exact:true}).check();
+    await page.getByLabel('Select F-LATER · Filter Upcoming',{exact:true}).uncheck();
+    assert.equal(await page.locator('.store-select:checked').count(),3);
+    assert(await page.locator('.store-select-all').evaluate(box=>box.indeterminate));
+    page.once('dialog',dialog=>dialog.dismiss());
+    await page.getByRole('button',{name:'Delete selected stores',exact:true}).click();
+    assert.equal(await page.locator('#store-results tbody tr').count(),4);
+    page.once('dialog',dialog=>dialog.accept());
+    await page.getByRole('button',{name:'Delete selected stores',exact:true}).click();
+    await page.locator('.notice.success').waitFor();
+    await page.getByRole('searchbox',{name:'Search stores'}).fill('Filter');
+    await page.getByRole('button',{name:'Search',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('#store-results tbody tr').length===1);
+    assert((await page.locator('#store-results').textContent()).includes('Filter Upcoming'));
+    assert.equal((await post(worker.ctx,'stores',{action:'delete-stores',confirmed:'1','store_ids[]':storeId})).status(),403);
+
     await page.goto(route('users'));
     for(const account of [worker,lead,outsider,pm])await account.ctx.close();
     console.log('PASS: workflow UI, company isolation, ordering, store creation, photo validation/authorization, PM sign-off, and responsive report preview.');
