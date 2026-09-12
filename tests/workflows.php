@@ -233,6 +233,31 @@ try{
     denied(fn()=>$prereqs->setStatus($actors['manager'],$storeForRules['id'],$definition['id'],'ordered'),'Cross-item status rejected');
     denied(fn()=>$prereqs->addItem($actors['lead'],['name'=>'Forbidden']),'Contractor admin cannot manage prerequisite definitions');
 
+
+    require_once dirname(__DIR__).'/src/StoreImport.php';
+    $import=new StoreImport($p);
+    $csv="code,name,post_code,city,address\nIMP-001,Import store,0012,Test City,12 Main Street\n";
+    $draft=$import->preview($actors['admin'],$csv);
+    verify(count($draft['changes'])===1&&!$p->rows("SELECT id FROM stores WHERE code='IMP-001'"),'Import preview makes no persistent changes');
+    $import->apply($actors['admin'],$draft,$draft['token']);
+    $imported=$p->rows("SELECT * FROM stores WHERE code='IMP-001'")[0];
+    verify($imported['post_code']==='0012'&&$imported['address']==='12 Main Street','Import preserves post code leading zeros and address');
+    verify(count($steps->list($imported['id']))>0,'Imported stores receive template steps');
+    verify($import->preview($actors['admin'],$csv)['ignored']===1,'Unchanged imported rows are ignored');
+    $changed="code,name,post_code,city,address\nIMP-001,Updated import,0012,Test City,\n";
+    $draft=$import->preview($actors['admin'],$changed);
+    verify(isset($draft['changes'][0]['diff']['name'])&&!isset($draft['changes'][0]['diff']['address']),'Review lists only changed fields and preserves blank optional cells');
+    $import->apply($actors['admin'],$draft,$draft['token']);
+    verify($p->rows("SELECT id FROM stores WHERE code='IMP-001'")[0]['id']===$imported['id'],'Store code updates preserve internal IDs');
+    denied(fn()=>$import->preview($actors['manager'],$csv),'PM cannot import stores');
+    denied(fn()=>$import->preview($actors['admin'],"code,name,post_code,city\nDUP,One,001,City\ndup,Two,001,City\n"),'Duplicate CSV store codes rejected');
+    denied(fn()=>$import->preview($actors['admin'],"code,name,post_code,city\nBAD,Missing code,,City\n"),'Post code required in CSV');
+    denied(fn()=>$import->preview($actors['admin'],"code,name,post_code,city,target_date\nGOOD,Good,001,City,2026-10-01\nBAD,Bad,001,City,invalid\n"),'Invalid row rejects whole preview');
+    verify(!$p->rows("SELECT id FROM stores WHERE code='GOOD'"),'Failed preview rolls back earlier rows');
+    $draft=$import->preview($actors['admin'],$csv);
+    $p->execute("UPDATE stores SET city='Changed externally' WHERE id=?",[$imported['id']]);
+    denied(fn()=>$import->apply($actors['admin'],$draft,$draft['token']),'Changed data requires new preview before import');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

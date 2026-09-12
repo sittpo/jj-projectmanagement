@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 final class Schema
 {
-    public const VERSION = 7;
+    public const VERSION = 8;
     // Parent-first order is also used by portable data transfers.
     public const TABLES = ['companies','users','project_settings','task_templates','stores','store_assignments','tasks','task_photos','subtasks','subtask_photos','task_audit','reminder_log','manual_reminder_log','user_preferences','store_pm_notes','prerequisites','prerequisite_statuses','store_prerequisites'];
 
@@ -55,7 +55,9 @@ final class Schema
         require_once __DIR__.'/Migration6.php';
         if($current<6)Migration6::run($db);
         require_once __DIR__.'/Migration7.php';
-        Migration7::run($db);
+        if($current<7)Migration7::run($db);
+        require_once __DIR__.'/Migration8.php';
+        Migration8::run($db);
     }
 
     public static function id(): string

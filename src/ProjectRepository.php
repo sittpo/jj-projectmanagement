@@ -160,8 +160,9 @@ final class ProjectRepository
         foreach ($assigned as $contractor) {
             if (!$company || !is_string($contractor) || !$this->rows("SELECT id FROM users WHERE id=? AND company_id=? AND role IN ('contractor','contractor_admin') AND active=1",[$contractor,$company])) throw new DomainException('Assigned contractors must be active members of the selected company.');
         }
-        $fields=[$code,$name,$city,$target,$company,self::text($input,'owner_name',120,true),self::text($input,'owner_phone',60),self::email($input,'owner_email'),self::text($input,'contact_name',120),self::text($input,'contact_phone',60),self::email($input,'contact_email'),$reminder,isset($input['reminders_enabled'])?1:0];
-        $this->db->beginTransaction();
+        $fields=[$code,$name,$city,$target,$company,self::text($input,'owner_name',120),self::text($input,'owner_phone',60),self::email($input,'owner_email'),self::text($input,'contact_name',120),self::text($input,'contact_phone',60),self::email($input,'contact_email'),$reminder,isset($input['reminders_enabled'])?1:0];
+        $ownsTransaction=!$this->db->inTransaction();
+        if($ownsTransaction)$this->db->beginTransaction();
         try {
             if ($id) {
                 if (!$this->rows('SELECT id FROM stores WHERE id=?',[$id])) throw new DomainException('Store not found.');
@@ -179,8 +180,9 @@ final class ProjectRepository
             }
             foreach ($assigned as $contractor) $this->execute('INSERT INTO store_assignments(store_id,user_id) VALUES (?,?)',[$id,$contractor]);
             $this->execute('UPDATE tasks SET due_date=? WHERE store_id=?',[$target,$id]);
-            $this->db->commit();
-        } catch(Throwable $error){$this->db->rollBack();throw $error;}
+            $this->execute('UPDATE stores SET address=?,post_code=? WHERE id=?',[self::text($input,'address',255),self::text($input,'post_code',30),$id]);
+            if($ownsTransaction)$this->db->commit();
+        } catch(Throwable $error){if($ownsTransaction)$this->db->rollBack();throw $error;}
         return $id;
     }
     public static function text(array $input,string $key,int $max,bool $required=false): string {

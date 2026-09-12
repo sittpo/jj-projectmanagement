@@ -6,6 +6,7 @@ function redirect(string $page, array $params = []): never { header('Location: '
 function csrf(): string { return '<input type="hidden" name="csrf" value="' . e($_SESSION['csrf']) . '">'; }
 function icon(string $name): string {
     $paths = [
+        'upload' => '<path d="M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5"/>',
         'tasks' => '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="m7 8 1 1 2-2m-3 7 1 1 2-2m3-5h4m-4 6h4"/>',
         'building' => '<path d="M4 21V3h12v18M16 9h4v12M2 21h20M8 7h1m3 0h1M8 11h1m3 0h1M8 15h1m3 0h1M9 21v-3h3v3"/>',
         'team' => '<circle cx="12" cy="6" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3M4 6a2 2 0 0 0 0 4m16-4a2 2 0 0 1 0 4M2 19v-3a4 4 0 0 1 3-4m17 7v-3a4 4 0 0 0-3-4"/>',

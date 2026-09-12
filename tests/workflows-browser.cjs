@@ -51,6 +51,7 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await page.getByLabel('Store code',{exact:true}).fill('ST-101');
     await page.getByLabel('Store name',{exact:true}).fill('Harbour Point');
     await page.getByLabel('City',{exact:true}).fill('Copenhagen');
+    await page.getByLabel('Post code',{exact:true}).fill('1000');
     await page.getByLabel('Installation date',{exact:true}).fill('2026-10-20');
     await page.getByLabel('Contracting company',{exact:true}).selectOption(alpha);
     await page.getByLabel('Alex Installer',{exact:true}).check();
@@ -372,6 +373,32 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await page.reload();
     assert.equal(await page.getByLabel('Access arranged',{exact:true}).locator('option:checked').textContent(),'Confirmed');
     assert.equal((await worker.ctx.request.get(route('prerequisites'))).status(),403);
+
+
+    await page.goto(route('store-import'));
+    const sample=await context.request.get(route('store-import')+'&sample=1');
+    assert((await sample.text()).startsWith('code,name,post_code,city,address'));
+    const csv=Buffer.from('code,name,post_code,city,address\nCSV-101,CSV Preview Store,0012,Import City,10 Test Road\n');
+    await page.getByLabel('Store CSV',{exact:true}).setInputFiles({name:'stores.csv',mimeType:'text/csv',buffer:csv});
+    await page.getByRole('button',{name:'Preview import',exact:true}).click();
+    await page.getByRole('heading',{name:'Review import',exact:true}).waitFor();
+    assert((await page.locator('.import-preview').textContent()).includes('Create new store'));
+    await page.screenshot({path:path.join(root,'storage/store-import-review.png'),fullPage:true});
+    const before=await context.request.get(route('stores')+'&q=CSV-101');
+    assert(!(await before.text()).includes('CSV Preview Store'));
+    await page.getByRole('button',{name:'Confirm import',exact:true}).click();
+    await page.locator('.notice.success').waitFor();
+    await page.goto(route('stores')+'&q=CSV-101');
+    await page.getByRole('link',{name:'CSV Preview Store',exact:true}).click();
+    assert((await page.textContent('body')).includes('0012 Import City'));
+    await page.goto(route('store-import'));
+    await page.getByLabel('Store CSV',{exact:true}).setInputFiles({name:'stores.csv',mimeType:'text/csv',buffer:csv});
+    await page.getByRole('button',{name:'Preview import',exact:true}).click();
+    await page.getByRole('heading',{name:'Review import',exact:true}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Confirm import',exact:true}).count(),0);
+    assert((await page.locator('.import-preview').textContent()).includes('1 unchanged'));
+    assert.equal((await pm.ctx.request.get(route('store-import'))).status(),403);
+    assert.equal((await worker.ctx.request.get(route('store-import')+'&sample=1')).status(),403);
 
     await page.goto(route('users'));
     for(const account of [worker,lead,outsider,pm])await account.ctx.close();

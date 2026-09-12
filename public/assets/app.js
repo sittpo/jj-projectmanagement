@@ -281,3 +281,5 @@ document.querySelectorAll('.photo-delete-form').forEach(form=>{
 });
 
 document.querySelectorAll('.prereq-up,.prereq-down').forEach(button=>button.addEventListener('click',()=>{const row=button.closest('tr');if(button.classList.contains('prereq-up')){const previous=row.previousElementSibling;if(previous)row.parentNode.insertBefore(row,previous);}else{const next=row.nextElementSibling;if(next)row.parentNode.insertBefore(next,row);}}));
+
+document.querySelector('.csv-picker-input')?.addEventListener('change',event=>{document.querySelector('.csv-selected').textContent=event.target.files[0]?.name||'No CSV selected';});

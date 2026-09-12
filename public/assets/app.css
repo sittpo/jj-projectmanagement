@@ -1484,3 +1484,7 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .prereq-status-table {min-width:760px}
 .prereq-status-table td:nth-child(2) input {width:200px;min-width:160px}
 .prereq-status-table .button-group {flex-wrap:nowrap}
+
+.import-preview {margin-top:24px}
+.import-actions {display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.import-preview td {overflow-wrap:anywhere;max-width:400px}
