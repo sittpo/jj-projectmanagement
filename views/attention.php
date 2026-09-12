@@ -1,0 +1,11 @@
+<div class="page-heading"><div><div class="eyebrow">ROLLOUT OVERVIEW</div><h1>Needs attention</h1><p>Stores with missing installation dates, overdue work, or prerequisites requiring attention.</p></div><a class="button" href="<?= e(url('dashboard')) ?>">Back to dashboard</a></div>
+<section class="panel">
+<div class="panel-heading"><h2><?= e($attentionPage['total']) ?> stores</h2>
+<form method="get" action="/index.php" class="activity-page-size"><input type="hidden" name="page" value="attention"><label>Stores per page <select name="per_page"><?php foreach([10,50,100] as $size): ?><option value="<?= $size ?>" <?= $attentionPage['per_page']===$size?'selected':'' ?>><?= $size ?></option><?php endforeach; ?></select></label><noscript><button class="button">Apply</button></noscript></form></div>
+<div class="attention-list"><?php foreach($attentionPage['rows'] as $item): ?><a class="attention-item" href="<?= e(url('store-edit',['id'=>$item['id']])) ?>"><span class="attention-icon amber"><?= icon('calendar') ?></span><div><strong><?= e($item['name']) ?></strong><p><?= e($item['code'].' · '.$item['reason']) ?></p><span class="text-tag">Edit store</span></div></a><?php endforeach; ?><?php if(!$attentionPage['rows']): ?><p class="empty-search">No stores need attention.</p><?php endif; ?></div>
+<nav class="activity-pagination" aria-label="Attention pages">
+<?php if($attentionPage['page']>1): ?><a class="button" href="<?= e(url('attention',['per_page'=>$attentionPage['per_page'],'p'=>$attentionPage['page']-1])) ?>">Previous</a><?php endif; ?>
+<span>Page <?= $attentionPage['page'] ?> of <?= $attentionPage['pages'] ?></span>
+<form method="get" action="/index.php"><input type="hidden" name="page" value="attention"><input type="hidden" name="per_page" value="<?= $attentionPage['per_page'] ?>"><label>Go to page <input type="number" name="p" min="1" max="<?= $attentionPage['pages'] ?>" value="<?= $attentionPage['page'] ?>" required></label><button class="button">Go</button></form>
+<?php if($attentionPage['page']<$attentionPage['pages']): ?><a class="button" href="<?= e(url('attention',['per_page'=>$attentionPage['per_page'],'p'=>$attentionPage['page']+1])) ?>">Next</a><?php endif; ?>
+</nav></section>

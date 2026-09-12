@@ -18,7 +18,7 @@
 <?php endforeach; ?>
 </div><div class="panel-foot"><?= icon('pulse') ?><span><?= e($report['done']) ?> of <?= e($report['task_total']) ?> installations complete</span><strong><?= $report['task_total']?round($report['done']/$report['task_total']*100):0 ?>%</strong></div>
 </section>
-<section class="panel attention"><div class="panel-heading"><div><h2>Needs attention</h2><p>A few things to keep moving</p></div><span class="count-badge"><?= count($report['attention']) ?></span></div>
+<section class="panel attention"><div class="panel-heading"><div><h2><a href="<?= e(url('attention')) ?>">Needs attention <?= icon('arrow') ?></a></h2><p>A few things to keep moving</p></div><span class="count-badge"><?= count($report['attention']) ?></span></div>
 <div class="attention-list">
 <?php foreach($report['attention'] as $item): ?><a class="attention-item" href="<?= e(url('store-edit',['id'=>$item['id']])) ?>"><span class="attention-icon amber"><?= icon('calendar') ?></span><div><strong><?= e($item['name']) ?></strong><p><?= e($item['code']) ?> · <?= e($item['reason']) ?></p><span class="text-tag">Edit store</span></div></a><?php endforeach; ?>
 <?php if(!$report['attention']): ?><p class="empty-search">No stores need attention.</p><?php endif; ?>

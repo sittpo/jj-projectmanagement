@@ -24,7 +24,7 @@ try {
     http_response_code(503); exit('The application is unavailable. Please try again shortly.');
 }
 $page = is_string($_GET['page'] ?? null) ? $_GET['page'] : 'dashboard';
-if (!in_array($page, ['dashboard','store-import','activity','prerequisites','login','logout','users','user-edit','report-export','stores','store','store-edit','companies','company-edit','templates','template-edit','settings','smtp','photo','step-update','store-report','team'], true)) {
+if (!in_array($page, ['dashboard','attention','store-import','activity','prerequisites','login','logout','users','user-edit','report-export','stores','store','store-edit','companies','company-edit','templates','template-edit','settings','smtp','photo','step-update','store-report','team'], true)) {
     http_response_code(404); exit('Not found');
 }
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
@@ -90,6 +90,17 @@ if ($page === 'report-export') {
     }
     fclose($output); exit;
 }
+if($page==='attention'){
+    if(!Access::atLeast($user,'pm')){http_response_code(403);$page='forbidden';}
+    else{
+        $rows=DashboardReport::live($project,$user)['attention'];
+        $perPage=filter_var($_GET['per_page']??10,FILTER_VALIDATE_INT);
+        $perPage=in_array($perPage,[10,50,100],true)?$perPage:10;
+        $total=count($rows);$pages=max(1,(int)ceil($total/$perPage));
+        $number=max(1,min((int)(filter_var($_GET['p']??1,FILTER_VALIDATE_INT)?:1),$pages));
+        $attentionPage=['rows'=>array_slice($rows,($number-1)*$perPage,$perPage),'total'=>$total,'pages'=>$pages,'page'=>$number,'per_page'=>$perPage];
+    }
+}
 if($page==='activity'){
     if(!Access::atLeast($user,'pm')){http_response_code(403);$page='forbidden';}
     else{
@@ -100,5 +111,5 @@ if($page==='activity'){
 }
 require dirname(__DIR__).'/src/store_import_routes.php';
 require dirname(__DIR__).'/src/project_routes.php';
-$title = match ($page) { 'store-import'=>'Import stores', 'prerequisites'=>'Prerequisites', 'activity'=>'Recent activity', 'login' => 'Sign in', 'users' => 'Users', 'user-edit' => isset($editing['id']) ? 'Edit user' : 'Create user', 'forbidden' => 'Access restricted', 'stores'=>'Stores','store'=>$store['name']??'Store','store-edit'=>'Store details','companies'=>'Contracting companies','company-edit'=>'Company details','templates'=>'Task templates','template-edit'=>'Subtask template','settings'=>'Reminder schedule','smtp'=>'SMTP connector','team'=>'Company team','step-error'=>'Step update', default => 'Dashboard' };
+$title = match ($page) { 'attention'=>'Needs attention', 'store-import'=>'Import stores', 'prerequisites'=>'Prerequisites', 'activity'=>'Recent activity', 'login' => 'Sign in', 'users' => 'Users', 'user-edit' => isset($editing['id']) ? 'Edit user' : 'Create user', 'forbidden' => 'Access restricted', 'stores'=>'Stores','store'=>$store['name']??'Store','store-edit'=>'Store details','companies'=>'Contracting companies','company-edit'=>'Company details','templates'=>'Task templates','template-edit'=>'Subtask template','settings'=>'Reminder schedule','smtp'=>'SMTP connector','team'=>'Company team','step-error'=>'Step update', default => 'Dashboard' };
 require dirname(__DIR__) . '/views/layout.php';

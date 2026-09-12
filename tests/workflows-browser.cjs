@@ -281,9 +281,15 @@ module.exports=async({page,context,browser,base,password,root})=>{
 
     await page.goto(route('dashboard'));
     assert(!(await page.textContent('body')).includes('Sample data'));
+    await page.getByRole('link',{name:'Needs attention',exact:false}).click();
+    await page.getByRole('heading',{name:'Needs attention',exact:true}).waitFor();
+    await page.getByLabel('Stores per page').selectOption('50');
+    await page.waitForURL('**per_page=50');
+    assert.equal((await worker.ctx.request.get(route('attention'))).status(),403);
     assert((await page.locator('.attention-list').textContent()).includes('Filter Unscheduled'));
     assert((await page.locator('.attention-list').textContent()).includes('Filter Overdue'));
     for(const href of await page.locator('.attention-list a').evaluateAll(links=>links.map(a=>a.href)))assert(href.includes('page=store-edit'));
+    await page.goto(route('dashboard'));
     assert((await page.locator('.visits').textContent()).includes('Filter Today'));
     await page.goto(route('store',storeId));
     assert(await page.evaluate(()=>Boolean(document.querySelector('.step-list').compareDocumentPosition(document.querySelector('.pm-notes-panel')) & Node.DOCUMENT_POSITION_FOLLOWING)));
