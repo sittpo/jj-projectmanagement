@@ -1,0 +1,1 @@
+<div class="panel empty-state"><h1>Step could not be updated</h1><p>Your changes have not been saved. Return to the store and reload the latest step before trying again.</p><a class="button" href="<?= e(url('stores')) ?>">Back to stores</a></div>

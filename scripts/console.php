@@ -35,8 +35,13 @@ try {
         $transfer->export($backup);
         $transfer->import($path, $config['environment']);
         echo "Imported successfully. Previous data saved to $backup\n";
+    } elseif ($command === 'reminders:run') {
+        $send=in_array('--send',$argv,true);
+        if($send && $config['environment']==='dev' && !in_array('--allow-dev-send',$argv,true)) throw new RuntimeException('Dev email sending requires --allow-dev-send. Omit --send for a dry run.');
+        $service=new ReminderService($project,new SmtpSettings(dirname(__DIR__).'/storage/config'));
+        echo json_encode($service->run($send),JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR)."\n";
     } else {
-        echo "Commands: migrate | seed-admin | data:export <file> | data:import <file> --replace\n";
+        echo "Commands: migrate | seed-admin | data:export <file> | data:import <file> --replace | reminders:run [--send] [--allow-dev-send]\n";
     }
 } catch (Throwable $exception) {
     fwrite(STDERR, $exception->getMessage() . "\n");

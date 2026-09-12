@@ -3,18 +3,20 @@ declare(strict_types=1);
 
 final class Schema
 {
-    public const VERSION = 1;
+    public const VERSION = 2;
     // Parent-first order is also used by portable data transfers.
-    public const TABLES = ['users', 'stores', 'store_assignments', 'tasks', 'task_photos'];
+    public const TABLES = ['companies','users','project_settings','task_templates','stores','store_assignments','tasks','task_photos','subtasks','subtask_photos','task_audit','reminder_log'];
 
     public static function migrate(PDO $db): void
     {
         $suffix = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql'
             ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci' : '';
         $db->exec('CREATE TABLE IF NOT EXISTS schema_versions (version INTEGER PRIMARY KEY)' . $suffix);
-        if ((int) $db->query('SELECT COALESCE(MAX(version), 0) FROM schema_versions')->fetchColumn() >= self::VERSION) {
+        $current=(int)$db->query('SELECT COALESCE(MAX(version),0) FROM schema_versions')->fetchColumn();
+        if ($current >= self::VERSION) {
             return;
         }
+        if ($current < 1) {
         $statements = [
             "users" => "id VARCHAR(36) PRIMARY KEY, username VARCHAR(80) NOT NULL UNIQUE,
                 display_name VARCHAR(120) NOT NULL, email VARCHAR(254) NULL, password_hash VARCHAR(255) NOT NULL,
@@ -41,6 +43,9 @@ final class Schema
             $db->exec("CREATE TABLE IF NOT EXISTS $table ($columns)" . $suffix);
         }
         $db->exec('INSERT INTO schema_versions (version) VALUES (1)');
+        }
+        require_once __DIR__.'/Migration2.php';
+        Migration2::run($db);
     }
 
     public static function id(): string

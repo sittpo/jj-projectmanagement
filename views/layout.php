@@ -17,12 +17,19 @@
     <nav aria-label="Main navigation">
         <p class="nav-heading">Workspace</p>
         <a class="nav-link <?= $page === 'dashboard' ? 'selected' : '' ?>" <?= $page === 'dashboard' ? 'aria-current="page"' : '' ?> href="<?= e(url('dashboard')) ?>"><?= icon('grid') ?>Dashboard</a>
+        <a class="nav-link <?= in_array($page,['stores','store','store-edit'])?'selected':'' ?>" href="<?= e(url('stores')) ?>"><?= icon('store') ?>Stores</a>
+        <?php if(Access::atLeast($user,'contractor_admin')): ?><a class="nav-link <?= $page==='team'?'selected':'' ?>" href="<?= e(url('team')) ?>"><?= icon('users') ?>Company team</a><?php endif; ?>
+        <?php if(Access::atLeast($user,'pm')): ?>
+        <p class="nav-heading">Project management</p>
+        <?php foreach(['templates'=>['Task templates','check'],'companies'=>['Contracting companies','users'],'settings'=>['Reminder schedule','calendar']] as $route=>$nav): ?><a class="nav-link <?= $page===$route?'selected':'' ?>" href="<?= e(url($route)) ?>"><?= icon($nav[1]) ?><?= e($nav[0]) ?></a><?php endforeach; ?>
+        <?php endif; ?>
         <?php if ($user['role'] === 'admin'): ?>
         <p class="nav-heading">Administration</p>
         <a class="nav-link <?= in_array($page, ['users','user-edit']) ? 'selected' : '' ?>" <?= in_array($page, ['users','user-edit']) ? 'aria-current="page"' : '' ?> href="<?= e(url('users')) ?>"><?= icon('users') ?>Users</a>
+        <a class="nav-link <?= $page==='smtp'?'selected':'' ?>" href="<?= e(url('smtp')) ?>"><?= icon('network') ?>SMTP connector</a>
         <?php endif; ?>
     </nav>
-    <div class="sidebar-bottom"><div class="environment-dot"></div><?= e(ucfirst($config['environment'])) ?> environment <span class="version">v0.2</span></div>
+    <div class="sidebar-bottom"><div class="environment-dot"></div><?= e(ucfirst($config['environment'])) ?> environment <span class="version">v0.3</span></div>
 </aside>
 <button class="nav-overlay" aria-label="Close navigation" tabindex="-1"></button>
 <div class="workspace">
@@ -32,7 +39,7 @@
         <button class="icon-button theme-toggle" aria-label="Switch color theme" title="Switch color theme"><?= icon('moon') ?></button>
         <span class="topbar-divider"></span>
         <span class="user-avatar"><?= e(strtoupper(mb_substr($user['display_name'], 0, 1))) ?></span>
-        <span class="user-label"><?= e($user['display_name']) ?><small><?= e(match($user['role']) { 'admin' => 'Administrator', 'pm' => 'Project manager', default => 'Contractor' }) ?></small></span>
+        <span class="user-label"><?= e($user['display_name']) ?><small><?= e(Access::label($user['role'])) ?></small></span>
         <form method="post" action="<?= e(url('logout')) ?>"><?= csrf() ?><button class="icon-button" aria-label="Sign out" title="Sign out"><?= icon('logout') ?></button></form>
     </div>
 </header>
@@ -41,7 +48,7 @@
     <?php if ($error): ?><div class="notice error" role="alert"><?= e($error) ?></div><?php endif; ?>
     <?php if ($page === 'forbidden'): ?>
     <div class="panel empty-state"><?= icon('shield') ?><h1>Access restricted</h1><p>You do not have permission to view this section.</p><a class="button primary" href="<?= e(url('dashboard')) ?>">Back to dashboard</a></div>
-    <?php else: require __DIR__ . '/' . match ($page) { 'users' => 'users', 'user-edit' => 'user-form', default => 'dashboard' } . '.php'; endif; ?>
+    <?php else: require __DIR__ . '/' . match ($page) { 'users' => 'users', 'user-edit' => 'user-form', 'stores'=>'stores','store'=>'store','store-edit'=>'store-edit','companies'=>'companies','company-edit'=>'company-edit','templates'=>'templates','template-edit'=>'template-edit','settings'=>'settings','smtp'=>'smtp','team'=>'team','step-error'=>'step-error', default => 'dashboard' } . '.php'; endif; ?>
     <footer class="page-footer"><span>JJ Project Management</span><span>Built for a connected rollout.</span></footer>
 </main>
 </div>

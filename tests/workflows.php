@@ -1,0 +1,72 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__).'/src/app.php';
+require __DIR__.'/DatabaseSandbox.php';
+$name='jjtest_'.bin2hex(random_bytes(5));$db=DatabaseSandbox::create($config,$name);
+$private=dirname(__DIR__).'/storage/workflow-test-'.bin2hex(random_bytes(5));
+function verify(bool $ok,string $label):void{if(!$ok)throw new RuntimeException($label);echo "PASS: $label\n";}
+function denied(callable $fn,string $label):void{try{$fn();}catch(DomainException){verify(true,$label);return;}throw new RuntimeException($label);}
+try{
+    Schema::migrate($db);Schema::migrate($db);$p=new ProjectRepository($db);$u=new UserRepository($db);$steps=new SubtaskRepository($db,$private.'/uploads');
+    $a=$p->companySave(['name'=>'Alpha','active'=>1],null);$b=$p->companySave(['name'=>'Beta','active'=>1],null);
+    $password=bin2hex(random_bytes(12));
+    foreach(['admin'=>['admin',null],'manager'=>['pm',null],'lead'=>['contractor_admin',$a],'worker'=>['contractor',$a],'outsider'=>['contractor',$b],'unassigned'=>['contractor',$a]] as $username=>$values){
+        $u->save(['username'=>$username,'display_name'=>ucfirst($username),'role'=>$values[0],'company_id'=>$values[1]??'','password'=>$password,'active'=>1],null,'');
+        $actors[$username]=$u->byUsername($username);
+    }
+    $today=(new DateTimeImmutable('now',new DateTimeZone('Europe/Copenhagen')))->format('Y-m-d');
+    $installation=(new DateTimeImmutable($today))->modify('+7 days')->format('Y-m-d');
+    $input=['code'=>'STORE-A','name'=>'Alpha Store','city'=>'Test City','owner_name'=>'Store Owner','owner_email'=>'owner@example.test','contact_email'=>'contact@example.test','target_date'=>$installation,'company_id'=>$a,'contractors'=>[$actors['worker']['id']],'reminders_enabled'=>1];
+    $ids=array_column($p->templates(),'id');$p->reorder(array_reverse($ids),'report_order');
+    $storeId=$p->storeSave($input,null);$store=Access::store($db,$actors['admin'],$storeId);
+    verify(count($steps->list($storeId))===4,'New store gets four active template snapshots');
+    verify(array_column($steps->list($storeId),'template_id')===$ids,'Interface order is independent of report order');
+    verify(array_column($steps->list($storeId,'report_order'),'template_id')===array_reverse($ids),'Report order is copied independently');
+    $template=$p->templates()[0];$p->templateSave(['category'=>$template['category'],'title'=>'Changed template','instructions'=>'New instructions','active'=>1],$template['id']);
+    verify($steps->list($storeId)[0]['title']!== 'Changed template','Template edits preserve existing store history');
+    verify(count($p->stores($actors['lead']))===1,'Contractor admin sees all company stores');
+    verify(count($p->stores($actors['worker']))===1,'Assigned contractor sees assigned store');
+    verify(count($p->stores($actors['unassigned']))===0,'Unassigned contractor sees no stores');
+    denied(fn()=>Access::store($db,$actors['outsider'],$storeId),'Other company cannot access store');
+    denied(fn()=>Access::store($db,$actors['unassigned'],$storeId),'Unassigned contractor cannot access store directly');
+    $bad=$input;$bad['contractors']=[$actors['outsider']['id']];
+    denied(fn()=>$p->storeSave($bad,$storeId),'Cross-company assignment rejected');
+    $step=$steps->list($storeId)[0];
+    $steps->update($actors['worker'],$step['id'],['action'=>'save','version'=>$step['version'],'complete'=>1,'note'=>'Installed and tested.']);
+    denied(fn()=>$steps->update($actors['worker'],$step['id'],['action'=>'save','version'=>$step['version'],'note'=>'Stale update']),'Stale step update rejected');
+    $step=$steps->list($storeId)[0];
+    denied(fn()=>$steps->update($actors['lead'],$step['id'],['action'=>'signoff','version'=>$step['version']]),'Contractor admin cannot sign off');
+    $steps->update($actors['manager'],$step['id'],['action'=>'signoff','version'=>$step['version']]);
+    $step=$steps->list($storeId)[0];verify($step['signed_name']==='Manager','PM sign-off records the signer');
+    denied(fn()=>$steps->update($actors['worker'],$step['id'],['action'=>'save','version'=>$step['version'],'note'=>'Attempted edit']),'Signed-off step is locked');
+    $steps->update($actors['admin'],$step['id'],['action'=>'reopen','version'=>$step['version']]);
+    verify($steps->list($storeId)[0]['signed_at']===null,'Admin can reopen a signed step');
+    verify(count($p->rows('SELECT * FROM task_audit WHERE subtask_id=?',[$step['id']]))===3,'Completion, sign-off, and reopen are audited');
+    $smtp=new SmtpSettings($private.'/config');
+    $secret=bin2hex(random_bytes(12));
+    $smtp->save(['username'=>'test-user','password'=>$secret,'port'=>'587','from_email'=>'sender@example.test','from_name'=>'Project','enabled'=>1]);
+    verify($smtp->read()['has_password']&&!isset($smtp->read()['password']),'SMTP secret is hidden from settings views');
+    verify(!str_contains(file_get_contents($private.'/config/smtp.json'),$secret),'SMTP password is encrypted at rest');
+    verify($smtp->read(true)['password']===$secret,'SMTP secret decrypts for transport only');
+    $service=new ReminderService($p,$smtp);
+    verify(count($service->due($today))===2,'Global schedule finds owner and contact reminders');
+    $calls=[];$transport=function($to,$subject,$body)use(&$calls){$calls[]=$to;};
+    verify(count($service->run(false))===2&&count($calls)===0,'Dry run does not send');
+    $service->run(true,$transport);
+    verify(count($calls)===2,'Reminder transport receives each recipient');
+    verify(count($service->run(true,$transport))===0&&count($calls)===2,'Already sent reminders are not duplicated');
+    verify(count($p->rows("SELECT * FROM reminder_log WHERE status='sent'"))===2,'SMTP acceptance is logged');
+    $override=$input;$override['code']='STORE-B';$override['name']='Override Store';$override['reminder_date']=(new DateTimeImmutable($today))->modify('+1 day')->format('Y-m-d');
+    $overrideId=$p->storeSave($override,null);verify(count($service->due($today))===0,'Per-store reminder date overrides global offset');
+    $override['reminder_date']=$today;$override['contact_email']=$override['owner_email'];$p->storeSave($override,$overrideId);
+    verify(count($service->due($today))===1,'Duplicate owner/contact address is sent only once');
+    $service->run(true,static function(){throw new RuntimeException('Simulated SMTP failure');});
+    verify(count($p->rows("SELECT * FROM reminder_log WHERE status='failed'"))===1,'Failed send is logged');
+    verify(count($service->due($today))===0,'Failed attempts are not blindly retried');
+    echo "All store-workflow tests passed.\n";
+}finally{
+    DatabaseSandbox::drop($config,$name);
+    foreach(['smtp.json','smtp.key'] as $file)if(is_file($private.'/config/'.$file))unlink($private.'/config/'.$file);
+    if(is_dir($private.'/config'))rmdir($private.'/config');
+    if(is_dir($private))rmdir($private);
+}

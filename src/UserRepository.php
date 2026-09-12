@@ -21,7 +21,7 @@ final class UserRepository
 
     public function all(): array
     {
-        return $this->db->query('SELECT id, username, display_name, email, role, active, created_at FROM users ORDER BY display_name, username')->fetchAll();
+        return $this->db->query('SELECT id, username, display_name, email, role, active, company_id, created_at FROM users ORDER BY display_name, username')->fetchAll();
     }
 
     public function save(array $input, ?string $id, string $actorId): void
@@ -41,7 +41,7 @@ final class UserRepository
         if ($email !== '' && (strlen($email) > 254 || !filter_var($email, FILTER_VALIDATE_EMAIL))) {
             throw new DomainException('Enter a valid email address or leave it empty.');
         }
-        if (!in_array($role, ['admin', 'pm', 'contractor'], true)) {
+        if (!in_array($role, ['admin', 'pm', 'contractor_admin', 'contractor'], true)) {
             throw new DomainException('Choose a valid role.');
         }
         if (($id === null || $password !== '') && (strlen($password) < 8 || strlen($password) > 72)) {
@@ -49,6 +49,12 @@ final class UserRepository
         }
         if ($id === $actorId && ($role !== 'admin' || !$active)) {
             throw new DomainException('You cannot remove your own administrator access or deactivate yourself.');
+        }
+        $company=trim((string)($input['company_id']??''))?:null;
+        if (in_array($role,['pm','admin'],true)) $company=null;
+        if ($company) {
+            $q=$this->db->prepare('SELECT id FROM companies WHERE id=? AND active=1');$q->execute([$company]);
+            if (!$q->fetchColumn()) throw new DomainException('Choose an active contracting company.');
         }
         $existing = $id ? $this->find($id) : null;
         if ($id && !$existing) {
@@ -61,11 +67,11 @@ final class UserRepository
         $now = gmdate('Y-m-d\TH:i:s\Z');
         $hash = $password !== '' ? password_hash($password, PASSWORD_DEFAULT) : $existing['password_hash'];
         if ($id) {
-            $query = $this->db->prepare('UPDATE users SET username=?, display_name=?, email=?, role=?, active=?, password_hash=?, session_version=session_version+1, updated_at=? WHERE id=?');
-            $query->execute([$username, $name, $email ?: null, $role, $active, $hash, $now, $id]);
+            $query = $this->db->prepare('UPDATE users SET username=?, display_name=?, email=?, role=?, active=?, password_hash=?, session_version=session_version+1, updated_at=?, company_id=? WHERE id=?');
+            $query->execute([$username, $name, $email ?: null, $role, $active, $hash, $now, $company, $id]);
         } else {
-            $query = $this->db->prepare('INSERT INTO users (id, username, display_name, email, role, active, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-            $query->execute([Schema::id(), $username, $name, $email ?: null, $role, $active, $hash, $now, $now]);
+            $query = $this->db->prepare('INSERT INTO users (id, username, display_name, email, role, active, password_hash, created_at, updated_at, company_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            $query->execute([Schema::id(), $username, $name, $email ?: null, $role, $active, $hash, $now, $now, $company]);
         }
     }
 }

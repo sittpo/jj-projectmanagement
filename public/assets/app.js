@@ -35,3 +35,57 @@
         document.querySelector('#no-users').hidden = count > 0;
     });
 })();
+
+(() => {
+    const company=document.querySelector('#store-company');
+    const filter=()=>{
+        if(!company)return;
+        let visible=0;
+        document.querySelectorAll('.contractor-option').forEach(option=>{
+            const show=!!company.value&&option.dataset.company===company.value;
+            option.hidden=!show;
+            const input=option.querySelector('input');
+            input.disabled=!show;
+            if(!show)input.checked=false;
+            if(show)visible++;
+        });
+        const hint=document.querySelector('.contractor-hint');
+        if(hint){hint.hidden=visible>0;hint.textContent=company.value?'No active contractors in this company.':'Select a company to show its available contractors.';}
+    };
+    company?.addEventListener('change',filter);filter();
+    document.querySelectorAll('.sortable').forEach(list=>{
+        let dragged;
+        list.addEventListener('dragstart',event=>{
+            dragged=event.target.closest('[data-order-item]');
+            if(!dragged)return;
+            dragged.classList.add('dragging');
+            event.dataTransfer.effectAllowed='move';
+            event.dataTransfer.setData('text/plain','reorder');
+        });
+        list.addEventListener('dragover',event=>{
+            if(!dragged||dragged.parentElement!==list)return;
+            event.preventDefault();
+            const target=event.target.closest('[data-order-item]');
+            if(target&&target!==dragged){
+                const box=target.getBoundingClientRect();
+                list.insertBefore(dragged,event.clientY<box.top+box.height/2?target:target.nextSibling);
+            }
+        });
+        list.addEventListener('drop',event=>event.preventDefault());
+        list.addEventListener('dragend',()=>{dragged?.classList.remove('dragging');dragged=null;});
+        list.addEventListener('click',event=>{
+            const button=event.target.closest('.order-up,.order-down');
+            if(!button)return;
+            const item=button.closest('[data-order-item]');
+            if(button.classList.contains('order-up')&&item.previousElementSibling)list.insertBefore(item,item.previousElementSibling);
+            if(button.classList.contains('order-down')&&item.nextElementSibling)list.insertBefore(item.nextElementSibling,item);
+            button.focus();
+        });
+    });
+    document.querySelector('.print-report')?.addEventListener('click',()=>window.print());
+})();
+
+document.querySelectorAll('.file-picker-input').forEach(input=>input.addEventListener('change',()=>{
+    const text=input.closest('.photo-picker').querySelector('.selected-files');
+    text.textContent=input.files.length?Array.from(input.files).map(file=>file.name).join(', '):'No photos selected';
+}));

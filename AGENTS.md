@@ -11,3 +11,7 @@
 
 - Local development uses MariaDB 11.8.6, matching the intended production database engine/version. Keep SQLite only for compatibility tests and migration backups.
 - Run the repository and browser suites against MariaDB by default. Tests use disposable jjtest_<10 hex digits> databases, never the application database.
+- Role hierarchy: Contractor < Contractor admin < PM < Admin. Admin always has all rights. Contractor admins are scoped to their own company; contractors additionally require a store assignment.
+- Global reminder lead time defaults to 7 days before installation, with an exact-date store override.
+- Global task templates are copied into new stores. Preserve existing store evidence and sign-offs when templates change; keep interface and report order independent.
+- Keep SMTP configuration environment-specific and out of production-to-dev database exports. Dev sending requires an explicit --allow-dev-send flag.

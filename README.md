@@ -8,7 +8,9 @@ PHP 8.4 application for a store equipment rollout. Local development uses `dev`,
 - Persistent light/dark themes and a collapsible mobile sidebar.
 - Username/password sign-in, hashed passwords, CSRF checks, session rotation, and sign-in throttling.
 - Admin-only user creation/editing, passwords, roles, deactivation and reactivation.
-- Administrator, project manager, and contractor roles. Contractors see an empty workspace until store assignment is implemented.
+- Contractor, contractor admin, PM, and Admin roles with company-scoped and individual store access.
+- Store contacts, assignments, task templates, photo evidence, PM sign-off, and printable report previews.
+- Global/per-store reminder schedules, email logs, and an admin-configurable SMTP2Go connector.
 - CSV sample summary from the same report provider used by the dashboard.
 - Versioned schema and portable data export/import.
 
@@ -86,7 +88,7 @@ MariaDB is the standard database for dev and production. The schema uses InnoDB,
 - `task_photos`: task/uploader references and file metadata.
 - `schema_versions` and `login_attempts`: operational tables, excluded from data exports.
 
-Store/task/photo interfaces are subsequent phases. Sample dashboard data remains separate from application tables.
+Store/task/photo workflows are implemented. See [workflow documentation](docs/workflows.md) for roles, template snapshots, SMTP settings, and reminder-worker operation. Sample dashboard statistics remain separate from application tables.
 
 Use the matching application/schema version in production and dev. Export on the production server:
 
@@ -117,7 +119,7 @@ The existing SQLite database is preserved at `storage/dev.sqlite`. The migration
 
 Use Debian 13, nginx, PHP 8.4-FPM and MariaDB 11.8.6. Point nginx at `public/` and use HTTPS. Enable `pdo_mysql` and `mbstring`. Provision a dedicated production database/account, configure `APP_ENV=production`, and run migrations.
 
-The database version now matches locally. Debian/nginx deployment and environment-specific settings still need verification on the production server. Entra ID, store assignment screens, task workflows and photo uploads are subsequent phases.
+The database version now matches locally. Debian/nginx deployment and environment-specific settings still need verification on the production server. Entra ID and a dedicated server-side PDF generator are subsequent phases. SMTP2Go requires credentials and a scheduled worker before live reminders can run.
 
 ## Verification
 

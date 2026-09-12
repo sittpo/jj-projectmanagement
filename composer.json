@@ -1,0 +1,18 @@
+{
+    "name": "sittpo/jj-projectmanagement",
+    "description": "Store rollout project management",
+    "type": "project",
+    "require": {
+        "php": "^8.4",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-fileinfo": "*",
+        "phpmailer/phpmailer": "^7.1"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": false
+    }
+}

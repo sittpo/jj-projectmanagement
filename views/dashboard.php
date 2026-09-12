@@ -1,8 +1,8 @@
 <?php $report = DashboardReport::sample(); ?>
 <div class="page-heading"><div><div class="eyebrow">ROLLOUT OVERVIEW</div><h1>Project dashboard</h1><p>Every store, every workstream. One clear picture.</p></div>
-<?php if ($user['role'] !== 'contractor'): ?><a class="button" href="<?= e(url('report-export')) ?>"><?= icon('download') ?>Export summary</a><?php endif; ?></div>
-<?php if ($user['role'] === 'contractor'): ?>
-<div class="panel empty-state"><?= icon('store') ?><h2>Your workspace is ready</h2><p>Your assigned stores and tasks will appear here when store management is available.</p></div>
+<?php if (Access::atLeast($user,'pm')): ?><a class="button" href="<?= e(url('report-export')) ?>"><?= icon('download') ?>Export summary</a><?php endif; ?></div>
+<?php if (!Access::atLeast($user,'pm')): ?>
+<div class="panel empty-state"><?= icon('store') ?><h2>Your workspace is ready</h2><p>Open Stores to view your assigned installations and complete their checklists.</p><a class="button primary" href="<?= e(url('stores')) ?>">View stores</a></div>
 <?php else: ?>
 <div class="sample-strip"><span><span class="status-dot"></span>Design preview <span class="sample-separator">/</span> Sample data</span><span>Illustrative rollout · 3½ months</span></div>
 <section class="metric-grid" aria-label="Rollout statistics">

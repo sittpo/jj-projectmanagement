@@ -12,7 +12,8 @@ if (driverResult.status !== 0) throw new Error(driverResult.stderr || 'Cannot re
 const maria = process.env.TEST_MARIADB === '1' || (process.env.TEST_MARIADB !== '0' && driverResult.stdout.trim() === 'mysql');
 const database = maria ? 'jjtest_' + suffix : path.join(root, 'storage', 'browser-test-' + suffix + '.sqlite');
 const password = crypto.randomBytes(15).toString('hex');
-const env = { ...process.env, APP_ENV: 'dev', DB_CONNECTION: maria ? 'mysql' : 'sqlite', DB_DATABASE: database, DEV_ADMIN_PASSWORD: password };
+const uploadRoot=path.join(root,'storage','browser-uploads-'+suffix);
+const env = { ...process.env, UPLOAD_ROOT:uploadRoot, APP_ENV: 'dev', DB_CONNECTION: maria ? 'mysql' : 'sqlite', DB_DATABASE: database, DEV_ADMIN_PASSWORD: password };
 let testDatabaseCreated = false;
 let server, browser;
 let serverError = '';
@@ -115,6 +116,7 @@ function command(args) {
     for (const route of ['/.env','/storage/dev.sqlite','/src/app.php','/.git/config']) {
         assert.equal((await context.request.get(base+route)).status(),404);
     }
+    await require('./workflows-browser.cjs')({page,context,browser,base,password,root});
     await page.getByRole('button',{name:'Sign out',exact:true}).click();
     await page.getByRole('heading',{name:'Welcome back'}).waitFor();
     assert.equal(errors.length,0,errors.join('\n'));
@@ -122,6 +124,13 @@ function command(args) {
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{
     if(browser) await browser.close();
     if(server) { server.kill(); await new Promise(r=>server.exitCode!==null?r():server.once('exit',r)); }
+    if(fs.existsSync(uploadRoot)){
+        for(const file of fs.readdirSync(uploadRoot)){
+            if(!/^[a-f0-9]{32}\.(jpg|png|webp)$/.test(file))throw new Error('Unexpected test upload filename.');
+            fs.unlinkSync(path.join(uploadRoot,file));
+        }
+        fs.rmdirSync(uploadRoot);
+    }
     if (maria && testDatabaseCreated) {
         const result = spawnSync(php, ['tests/database.php','drop',database], {cwd:root,env:process.env,encoding:'utf8'});
         if (result.status !== 0) { console.error(result.stderr); process.exitCode=1; }

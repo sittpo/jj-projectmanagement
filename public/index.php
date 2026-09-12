@@ -3,6 +3,7 @@ declare(strict_types=1);
 if (!in_array(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), ['/', '/index.php'], true)) {
     http_response_code(404); exit('Not found');
 }
+if ((int)($_SERVER['CONTENT_LENGTH']??0)>64*1024*1024) { http_response_code(413);exit('Upload too large. Use up to 6 photos of 10 MB each.'); }
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -23,7 +24,7 @@ try {
     http_response_code(503); exit('The application is unavailable. Please try again shortly.');
 }
 $page = is_string($_GET['page'] ?? null) ? $_GET['page'] : 'dashboard';
-if (!in_array($page, ['dashboard','login','logout','users','user-edit','report-export'], true)) {
+if (!in_array($page, ['dashboard','login','logout','users','user-edit','report-export','stores','store','store-edit','companies','company-edit','templates','template-edit','settings','smtp','photo','step-update','store-report','team'], true)) {
     http_response_code(404); exit('Not found');
 }
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
@@ -75,7 +76,7 @@ if ($page === 'user-edit') {
             $error = 'The user could not be saved. Check for a duplicate username and try again.';
         }
         $editing = ['id' => $id, 'username' => $_POST['username'] ?? '', 'display_name' => $_POST['display_name'] ?? '',
-            'email' => $_POST['email'] ?? '', 'role' => $_POST['role'] ?? 'contractor', 'active' => isset($_POST['active']) ? 1 : 0];
+            'email' => $_POST['email'] ?? '', 'role' => $_POST['role'] ?? 'contractor', 'active' => isset($_POST['active']) ? 1 : 0, 'company_id'=>$_POST['company_id']??null];
     }
 }
 if ($page === 'report-export') {
@@ -88,5 +89,6 @@ if ($page === 'report-export') {
     }
     fclose($output); exit;
 }
-$title = match ($page) { 'login' => 'Sign in', 'users' => 'Users', 'user-edit' => isset($editing['id']) ? 'Edit user' : 'Create user', 'forbidden' => 'Access restricted', default => 'Dashboard' };
+require dirname(__DIR__).'/src/project_routes.php';
+$title = match ($page) { 'login' => 'Sign in', 'users' => 'Users', 'user-edit' => isset($editing['id']) ? 'Edit user' : 'Create user', 'forbidden' => 'Access restricted', 'stores'=>'Stores','store'=>$store['name']??'Store','store-edit'=>'Store details','companies'=>'Contracting companies','company-edit'=>'Company details','templates'=>'Task templates','template-edit'=>'Subtask template','settings'=>'Reminder schedule','smtp'=>'SMTP connector','team'=>'Company team','step-error'=>'Step update', default => 'Dashboard' };
 require dirname(__DIR__) . '/views/layout.php';

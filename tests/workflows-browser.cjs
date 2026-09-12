@@ -1,0 +1,127 @@
+const assert=require('node:assert/strict');
+const path=require('node:path');
+module.exports=async({page,context,browser,base,password,root})=>{
+    const route=(name,id)=>base+'/index.php?page='+name+(id?'&id='+encodeURIComponent(id):'');
+    const token=async(ctx)=>{const response=await ctx.request.get(route('dashboard'));const body=await response.text();return body.match(/name="csrf" value="([^"]+)"/)[1];};
+    const post=async(ctx,name,data,id)=>ctx.request.post(route(name,id),{form:{csrf:await token(ctx),...data}});
+    const login=async(username)=>{
+        const ctx=await browser.newContext({viewport:{width:1440,height:1000}});
+        const tab=await ctx.newPage();await tab.goto(base);
+        await tab.getByLabel('Username',{exact:true}).fill(username);
+        await tab.getByLabel('Password',{exact:true}).fill(password);
+        await tab.getByRole('button',{name:'Sign in',exact:true}).click();
+        return {ctx,tab};
+    };
+    for(const name of ['Alpha Installations','Beta Installations']){
+        await page.goto(route('company-edit'));
+        await page.getByLabel('Company name',{exact:true}).fill(name);
+        await page.getByRole('button',{name:'Save company',exact:true}).click();
+        await page.getByRole('status').waitFor();
+    }
+    await page.goto(route('store-edit'));
+    const alpha=await page.getByLabel('Contracting company',{exact:true}).locator('option').filter({hasText:'Alpha Installations'}).getAttribute('value');
+    const beta=await page.getByLabel('Contracting company',{exact:true}).locator('option').filter({hasText:'Beta Installations'}).getAttribute('value');
+    for(const [username,name,role,company] of [
+        ['installer2','Alex Installer','contractor',alpha],['lead2','Company Lead','contractor_admin',alpha],
+        ['other2','Other Company','contractor',beta],['manager2','Project Manager','pm','']]){
+        const response=await post(context,'user-edit',{username,display_name:name,role,company_id:company,password,active:'1'});
+        assert((await response.text()).includes('User created.'));
+    }
+    await page.goto(route('template-edit'));
+    await page.getByLabel('Subtask title',{exact:true}).fill('Photograph the completed rack');
+    await page.getByLabel('Workstream',{exact:true}).selectOption('rack');
+    await page.getByLabel('Instructions',{exact:true}).fill('Capture the cabinet front and cable routing.');
+    await page.getByRole('button',{name:'Save template',exact:true}).click();
+    await page.getByRole('heading',{name:'Task templates',exact:true}).waitFor();
+    const interfaceList=page.getByRole('list',{name:'Interface order',exact:true});
+    const reportList=page.getByRole('list',{name:'Report order',exact:true});
+    const interfaceFirst=await interfaceList.locator('strong').first().textContent();
+    // Exercise drag-and-drop, then save its independent order.
+    await reportList.locator('li').first().dragTo(reportList.locator('li').nth(2));
+    let reportFirst=await reportList.locator('strong').first().textContent();
+    if(reportFirst===interfaceFirst){
+        await reportList.locator('.order-down').first().click();
+        reportFirst=await reportList.locator('strong').first().textContent();
+    }
+    assert.notEqual(reportFirst,interfaceFirst);
+    await page.getByRole('button',{name:'Save report order',exact:true}).click();
+    assert.equal(await page.getByRole('list',{name:'Interface order',exact:true}).locator('strong').first().textContent(),interfaceFirst);
+    await page.screenshot({path:path.join(root,'storage/templates-workflow.png'),fullPage:true});
+    await page.goto(route('store-edit'));
+    await page.getByLabel('Store code',{exact:true}).fill('ST-101');
+    await page.getByLabel('Store name',{exact:true}).fill('Harbour Point');
+    await page.getByLabel('City',{exact:true}).fill('Copenhagen');
+    await page.getByLabel('Installation date',{exact:true}).fill('2026-10-20');
+    await page.getByLabel('Contracting company',{exact:true}).selectOption(alpha);
+    await page.getByLabel('Alex Installer',{exact:true}).check();
+    assert.equal(await page.getByLabel('Other Company',{exact:true}).isVisible(),false);
+    await page.getByLabel('Owner name',{exact:true}).fill('Store Owner');
+    await page.getByLabel('Owner phone',{exact:true}).fill('+45 12345678');
+    await page.getByLabel('Owner email',{exact:true}).fill('owner@example.test');
+    await page.getByLabel('Contact name',{exact:true}).fill('Store Contact');
+    await page.getByLabel('Contact email',{exact:true}).fill('contact@example.test');
+    await page.getByLabel('Reminder date override',{exact:true}).fill('2026-10-15');
+    await page.getByRole('button',{name:'Save store',exact:true}).click();
+    await page.getByRole('heading',{name:'Harbour Point',exact:true}).waitFor();
+    const storeId=new URL(page.url()).searchParams.get('id');
+    assert.equal(await page.locator('.step-card').count(),5);
+    assert((await page.textContent('body')).includes('2026-10-15'));
+    const worker=await login('installer2'),lead=await login('lead2'),outsider=await login('other2'),pm=await login('manager2');
+    await worker.tab.goto(route('store',storeId));
+    await worker.tab.getByRole('heading',{name:'Harbour Point',exact:true}).waitFor();
+    await lead.tab.goto(route('stores'));assert(await lead.tab.getByRole('link',{name:'Harbour Point',exact:true}).isVisible());
+    await lead.tab.goto(route('team'));assert((await lead.tab.textContent('body')).includes('Alex Installer'));assert(!(await lead.tab.textContent('body')).includes('Other Company'));
+    assert.equal((await outsider.ctx.request.get(route('store',storeId))).status(),403);
+    assert.equal((await lead.ctx.request.get(route('templates'))).status(),403);
+    assert.equal((await pm.ctx.request.get(route('smtp'))).status(),403);
+    assert.equal((await context.request.get(route('smtp'))).status(),200);
+    const card=worker.tab.locator('.step-card').first();
+    const stepId=(await card.getAttribute('id')).slice(5);
+    await card.locator('textarea[name=note]').fill('Equipment replaced, cabling labeled, and connectivity verified.');
+    await card.locator('input[name=complete]').check();
+    const photo=Buffer.from(await worker.tab.evaluate(()=>{
+        const c=document.createElement('canvas');c.width=640;c.height=400;
+        const x=c.getContext('2d');x.fillStyle='#e5ecec';x.fillRect(0,0,640,400);
+        x.fillStyle='#29464d';x.fillRect(210,40,220,320);
+        for(let y=65;y<330;y+=48){x.fillStyle='#49636b';x.fillRect(230,y,180,30);x.fillStyle='#52c3a0';x.fillRect(385,y+9,8,8);}
+        x.fillStyle='#19343d';x.font='18px sans-serif';x.fillText('Synthetic installation test photo',175,385);
+        return c.toDataURL('image/png').split(',')[1];
+    }), 'base64');
+    await card.locator('input[type=file]').setInputFiles({name:'rack-documentation.png',mimeType:'image/png',buffer:photo});
+    await card.getByRole('button',{name:'Save step',exact:true}).click();
+    await worker.tab.getByRole('status').waitFor();
+    assert.equal(await worker.tab.locator('.photo-grid img').count(),1);
+    const photoUrl=await worker.tab.locator('.photo-grid img').first().getAttribute('src');
+    assert.equal((await outsider.ctx.request.get(base+photoUrl)).status(),403);
+    assert.equal((await worker.ctx.request.get(base+photoUrl)).headers()['content-type'],'image/png');
+    const version=await worker.tab.locator('#step-'+stepId+' input[name=version]').first().getAttribute('value');
+    assert.equal((await post(lead.ctx,'step-update',{action:'signoff',version},stepId)).status(),403);
+    assert.equal((await post(outsider.ctx,'step-update',{action:'save',version,note:'forbidden'},stepId)).status(),403);
+    await pm.tab.goto(route('store',storeId));
+    await pm.tab.locator('#step-'+stepId).getByRole('button',{name:'Sign off step',exact:true}).click();
+    await pm.tab.getByRole('status').waitFor();
+    assert((await pm.tab.locator('#step-'+stepId).textContent()).includes('Signed off by Project Manager'));
+    await worker.tab.reload();
+    assert.equal(await worker.tab.locator('#step-'+stepId+' textarea').count(),0);
+    await page.goto(route('store',storeId));
+    await page.screenshot({path:path.join(root,'storage/store-workflow-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+    await page.screenshot({path:path.join(root,'storage/store-workflow-mobile.png'),fullPage:true});
+    await page.goto(route('store-report',storeId));
+    assert.equal(await page.locator('.report-step h2').first().textContent(),reportFirst);
+    assert((await page.textContent('body')).includes('Project Manager'));
+    await page.setViewportSize({width:1100,height:1000});
+    await page.screenshot({path:path.join(root,'storage/store-report-preview.png'),fullPage:true});
+    await page.goto(route('store',storeId));
+    await page.locator('#step-'+stepId).getByRole('button',{name:'Reopen step',exact:true}).click();
+    await page.getByRole('status').waitFor();
+    await worker.tab.reload();
+    const upload=worker.tab.locator('#step-'+stepId+' input[type=file]');
+    await upload.setInputFiles({name:'fake.jpg',mimeType:'image/jpeg',buffer:Buffer.from('<?php echo "not a photo"; ?>')});
+    await worker.tab.locator('#step-'+stepId).getByRole('button',{name:'Save step',exact:true}).click();
+    assert((await worker.tab.textContent('body')).includes('valid JPEG, PNG, or WebP'));
+    await page.goto(route('users'));
+    for(const account of [worker,lead,outsider,pm])await account.ctx.close();
+    console.log('PASS: workflow UI, company isolation, ordering, store creation, photo validation/authorization, PM sign-off, and responsive report preview.');
+};

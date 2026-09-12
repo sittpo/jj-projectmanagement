@@ -19,6 +19,10 @@ extension=pdo_sqlite
 extension=pdo_mysql
 extension=mbstring
 extension=openssl
+extension=zip
+extension=fileinfo
+upload_max_filesize=10M
+post_max_size=64M
 date.timezone=Europe/Copenhagen
 error_reporting=E_ALL
 display_errors=Off
@@ -30,6 +34,16 @@ if (-not (Test-Path (Join-Path $projectRoot '.env'))) {
 }
 & (Join-Path $phpDirectory 'php.exe') -v
 if ($LASTEXITCODE -ne 0) { throw 'PHP failed to start. Check the Microsoft Visual C++ 2022 x64 runtime.' }
+$certificatePath = Join-Path $phpDirectory 'cacert.pem'
+Invoke-WebRequest 'https://curl.se/ca/cacert.pem' -OutFile $certificatePath
+$certificateIniPath = $certificatePath.Replace('\', '/')
+Add-Content -LiteralPath (Join-Path $phpDirectory 'php.ini') -Value ('openssl.cafile="' + $certificateIniPath + '"')
+$composerCommand = Get-Command composer -ErrorAction SilentlyContinue
+if (-not $composerCommand) { throw 'Install Composer, then rerun setup to install PHP dependencies.' }
+$composerPhar = Join-Path (Split-Path $composerCommand.Source -Parent) 'composer.phar'
+if (-not (Test-Path $composerPhar)) { throw 'Could not locate composer.phar. Run composer install using PHP 8.4.' }
+& (Join-Path $phpDirectory 'php.exe') $composerPhar install --no-interaction --prefer-dist --working-dir $projectRoot
+if ($LASTEXITCODE -ne 0) { throw 'Composer dependency installation failed.' }
 & (Join-Path $phpDirectory 'php.exe') (Join-Path $projectRoot 'scripts/console.php') migrate
 if ($LASTEXITCODE -ne 0) { throw 'Database migration failed.' }
 Write-Host 'Setup complete. Run .\scripts\dev.ps1 to start.'
