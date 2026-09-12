@@ -105,6 +105,14 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await card.getByRole('button',{name:'Save step',exact:true}).click();
     await worker.tab.getByRole('status').waitFor();
     assert.equal(await worker.tab.locator('.photo-grid img').count(),2);
+    await card.locator('input[name=complete]').uncheck();
+    await card.locator('.completion-feedback').filter({hasText:'Completion saved'}).waitFor();
+    assert.equal(await card.locator('.badge').textContent(),'In progress');
+    await worker.tab.reload();
+    assert.equal(await card.locator('.badge').textContent(),'In progress');
+    await card.locator('input[name=complete]').check();
+    await card.locator('.completion-feedback').filter({hasText:'Completion saved'}).waitFor();
+    assert.equal(await card.locator('.badge').textContent(),'Awaiting sign-off');
     assert.equal(await card.locator('.photo-save-reminder').isVisible(),false);
     const photoUrl=await worker.tab.locator('.photo-grid img').first().getAttribute('src');
     assert.equal((await outsider.ctx.request.get(base+photoUrl)).status(),403);

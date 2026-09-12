@@ -204,6 +204,14 @@ try{
     verify(count($steps->photos($photoStep['id']))===0,'PM can delete signed-off photos');
     rmdir($private.'/uploads');
 
+
+    $statusStep=['signed_at'=>null,'complete'=>0,'note'=>'','photo_count'=>0];
+    verify(SubtaskRepository::displayStatus($statusStep)==='To do','Empty step is To do');
+    verify(SubtaskRepository::displayStatus(array_replace($statusStep,['note'=>'Work started']))==='In progress','Saved note makes step In progress');
+    verify(SubtaskRepository::displayStatus(array_replace($statusStep,['photo_count'=>1]))==='In progress','Uploaded photo makes step In progress');
+    verify(SubtaskRepository::displayStatus(array_replace($statusStep,['complete'=>1,'photo_count'=>1]))==='Awaiting sign-off','Completion takes precedence over In progress');
+    verify(SubtaskRepository::displayStatus(array_replace($statusStep,['signed_at'=>'2026-09-12T12:00:00Z','complete'=>1]))==='Signed off','Sign-off takes precedence');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

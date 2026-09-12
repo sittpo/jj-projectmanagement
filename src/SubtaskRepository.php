@@ -6,8 +6,14 @@ final class SubtaskRepository
     public function list(string $storeId,string $order='ui_order'): array
     {
         $order=$order==='report_order'?'report_order':'ui_order';
-        $q=$this->db->prepare("SELECT s.*,t.category,t.store_id,u.display_name AS completed_name FROM subtasks s JOIN tasks t ON t.id=s.task_id LEFT JOIN users u ON u.id=s.completed_by WHERE t.store_id=? ORDER BY s.$order,s.id");
+        $q=$this->db->prepare("SELECT s.*,t.category,t.store_id,u.display_name AS completed_name,(SELECT COUNT(*) FROM subtask_photos p WHERE p.subtask_id=s.id) AS photo_count FROM subtasks s JOIN tasks t ON t.id=s.task_id LEFT JOIN users u ON u.id=s.completed_by WHERE t.store_id=? ORDER BY s.$order,s.id");
         $q->execute([$storeId]);return $q->fetchAll();
+    }
+    public static function displayStatus(array $step): string
+    {
+        if($step['signed_at'])return 'Signed off';
+        if($step['complete'])return 'Awaiting sign-off';
+        return trim($step['note']??'')!==''||(int)($step['photo_count']??0)>0?'In progress':'To do';
     }
     public function photos(string $id): array { $q=$this->db->prepare('SELECT * FROM subtask_photos WHERE subtask_id=? ORDER BY created_at,id');$q->execute([$id]);return $q->fetchAll(); }
     public function update(array $user,string $id,array $input,array $files=[]): string

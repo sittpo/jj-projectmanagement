@@ -48,7 +48,7 @@ if(in_array($page,$projectPages,true)){
                 try{
                     $storeId=$subtasks->update($user,$id??'',$_POST);
                     $saved=array_values(array_filter($subtasks->list($storeId),fn($step)=>$step['id']===$id))[0];
-                    header('Content-Type: application/json');echo json_encode(['saved'=>true,'version'=>$saved['version'],'complete'=>(bool)$saved['complete'],'completed_name'=>$saved['completed_name'],'completed_at'=>$saved['completed_at']]);exit;
+                    header('Content-Type: application/json');echo json_encode(['saved'=>true,'version'=>$saved['version'],'complete'=>(bool)$saved['complete'],'status'=>SubtaskRepository::displayStatus($saved),'completed_name'=>$saved['completed_name'],'completed_at'=>$saved['completed_at']]);exit;
                 }catch(DomainException $exception){
                     http_response_code($exception instanceof AccessDenied?403:409);header('Content-Type: application/json');echo json_encode(['error'=>$exception->getMessage()]);exit;
                 }
