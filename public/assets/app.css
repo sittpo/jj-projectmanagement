@@ -1466,3 +1466,9 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .photo-item {min-width:0}
 .photo-delete-form {margin-top:8px}
 .photo-delete-form .button {width:100%;color:#d45d68}
+
+.prereq-definition {margin-top:24px}
+.prereq-add {display:flex;align-items:end;gap:16px;flex-wrap:wrap}
+.prereq-help {margin:20px 0;color:var(--muted)}
+.prereq-status-table input:not([type=checkbox]):not([type=radio]) {padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);max-width:200px}
+.prereq-status-table input[type=number] {width:90px}

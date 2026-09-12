@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/PrerequisiteRepository.php';
 final class ProjectRepository
 {
     public const UNIFI_STATES=['not_ordered'=>'Not ordered','ordered'=>'Ordered','shipped'=>'Shipped','delivered'=>'Delivered'];
@@ -8,6 +9,7 @@ final class ProjectRepository
         if(!Access::atLeast($actor,'pm'))throw new AccessDenied('Only a PM or Admin can update UniFi orders.');
         Access::store($this->db,$actor,$storeId);
         if(!isset(self::UNIFI_STATES[$state]))throw new DomainException('Choose a valid UniFi order state.');
+        (new PrerequisiteRepository($this))->setStatus($actor,$storeId,'unifi',$state);
         $this->execute('UPDATE stores SET unifi_order=? WHERE id=?',[$state,$storeId]);
     }
     public static function workingDaysUntil(string $today,string $installation): int

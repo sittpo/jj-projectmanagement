@@ -21,7 +21,7 @@
         <?php if(Access::atLeast($user,'contractor_admin')): ?><a class="nav-link <?= $page==='team'?'selected':'' ?>" href="<?= e(url('team')) ?>"><?= icon('users') ?>Company team</a><?php endif; ?>
         <?php if(Access::atLeast($user,'pm')): ?>
         <p class="nav-heading">Project management</p>
-        <?php foreach(['templates'=>['Task templates','check'],'companies'=>['Contracting companies','users'],'settings'=>['Reminder schedule','calendar']] as $route=>$nav): ?><a class="nav-link <?= $page===$route?'selected':'' ?>" href="<?= e(url($route)) ?>"><?= icon($nav[1]) ?><?= e($nav[0]) ?></a><?php endforeach; ?>
+        <?php foreach(['prerequisites'=>['Prerequisites','check'],'templates'=>['Task templates','check'],'companies'=>['Contracting companies','users'],'settings'=>['Reminder schedule','calendar']] as $route=>$nav): ?><a class="nav-link <?= $page===$route?'selected':'' ?>" href="<?= e(url($route)) ?>"><?= icon($nav[1]) ?><?= e($nav[0]) ?></a><?php endforeach; ?>
         <?php endif; ?>
         <?php if ($user['role'] === 'admin'): ?>
         <p class="nav-heading">Administration</p>
@@ -48,7 +48,7 @@
     <?php if ($error): ?><div class="notice error" role="alert"><?= e($error) ?></div><?php endif; ?>
     <?php if ($page === 'forbidden'): ?>
     <div class="panel empty-state"><?= icon('shield') ?><h1>Access restricted</h1><p>You do not have permission to view this section.</p><a class="button primary" href="<?= e(url('dashboard')) ?>">Back to dashboard</a></div>
-    <?php else: require __DIR__ . '/' . match ($page) { 'activity'=>'activity', 'users' => 'users', 'user-edit' => 'user-form', 'stores'=>'stores','store'=>'store','store-edit'=>'store-edit','companies'=>'companies','company-edit'=>'company-edit','templates'=>'templates','template-edit'=>'template-edit','settings'=>'settings','smtp'=>'smtp','team'=>'team','step-error'=>'step-error', default => 'dashboard' } . '.php'; endif; ?>
+    <?php else: require __DIR__ . '/' . match ($page) { 'prerequisites'=>'prerequisites', 'activity'=>'activity', 'users' => 'users', 'user-edit' => 'user-form', 'stores'=>'stores','store'=>'store','store-edit'=>'store-edit','companies'=>'companies','company-edit'=>'company-edit','templates'=>'templates','template-edit'=>'template-edit','settings'=>'settings','smtp'=>'smtp','team'=>'team','step-error'=>'step-error', default => 'dashboard' } . '.php'; endif; ?>
     <footer class="page-footer"><span>JJ Project Management</span><span>Built for a connected rollout.</span></footer>
 </main>
 </div>

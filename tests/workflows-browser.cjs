@@ -346,6 +346,28 @@ module.exports=async({page,context,browser,base,password,root})=>{
         assert(!(await listing.text()).includes('Harbour Point'));
     }
     assert.equal((await context.request.get(route('store',storeId))).status(),200);
+
+    await page.goto(route('prerequisites'));
+    await page.getByLabel('Prerequisite name',{exact:true}).fill('Access arranged');
+    await page.getByRole('button',{name:'Add prerequisite',exact:true}).click();
+    let definitionPanel=page.locator('.prereq-definition').filter({has:page.getByRole('heading',{name:'Access arranged',exact:true})});
+    await definitionPanel.getByLabel('New status',{exact:true}).fill('Confirmed');
+    await definitionPanel.getByRole('button',{name:'Add status',exact:true}).click();
+    await definitionPanel.getByLabel('Requires attention for Not started',{exact:true}).check();
+    await definitionPanel.getByLabel('Working days for Not started',{exact:true}).fill('5');
+    await definitionPanel.getByRole('button',{name:'Move Confirmed up',exact:true}).click();
+    await definitionPanel.getByRole('button',{name:'Save prerequisite',exact:true}).click();
+    assert.equal(await definitionPanel.locator('input[aria-label="Status name"]').first().inputValue(),'Confirmed');
+    await page.goto(route('store',storeId));
+    const accessSelect=page.getByLabel('Access arranged',{exact:true});
+    assert.deepEqual(await accessSelect.locator('option').allTextContents(),['Confirmed','Not started']);
+    assert.equal(await accessSelect.locator('option:checked').textContent(),'Not started');
+    await accessSelect.selectOption({label:'Confirmed'});
+    await accessSelect.locator('..').locator('.unifi-feedback').filter({hasText:'Saved'}).waitFor();
+    await page.reload();
+    assert.equal(await page.getByLabel('Access arranged',{exact:true}).locator('option:checked').textContent(),'Confirmed');
+    assert.equal((await worker.ctx.request.get(route('prerequisites'))).status(),403);
+
     await page.goto(route('users'));
     for(const account of [worker,lead,outsider,pm])await account.ctx.close();
     console.log('PASS: workflow UI, company isolation, ordering, store creation, photo validation/authorization, PM sign-off, and responsive report preview.');

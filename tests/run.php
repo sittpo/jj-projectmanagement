@@ -55,6 +55,7 @@ $export = dirname(__DIR__) . '/storage/test-export-' . bin2hex(random_bytes(5)) 
 $invalid = $export . '.invalid';
 try {
     (new ProjectRepository($db))->saveStorePreference($admin['id'],true);
+    $db->prepare("INSERT INTO store_prerequisites(store_id,prerequisite_id,status_id) VALUES(?,'unifi','shipped')")->execute([$store]);
     $transfer = new DataTransfer($db);
     $transfer->export($export);
     rejects(fn() => $transfer->import($export, 'production'), 'Import into production rejected');
@@ -72,11 +73,13 @@ try {
         (new DataTransfer($sqlite))->import($export, 'dev');
         check($sqlite->query('SELECT task_id FROM task_photos')->fetchColumn() === $task, 'MariaDB-to-SQLite import preserves relationships');
         check((new ProjectRepository($sqlite))->showAllStores($admin['id']), 'Account preferences transfer to SQLite');
+        check($sqlite->query('SELECT status_id FROM store_prerequisites')->fetchColumn()==='shipped', 'Prerequisite selections transfer to SQLite');
         $crossExport = $export . '.cross';
         try {
             (new DataTransfer($sqlite))->export($crossExport);
             $transfer->import($crossExport, 'dev');
             check($db->query('SELECT task_id FROM task_photos')->fetchColumn() === $task, 'SQLite-to-MariaDB import preserves relationships');
+            check($db->query('SELECT status_id FROM store_prerequisites')->fetchColumn()==='shipped', 'Prerequisite selections round trip to MariaDB');
         } finally { if (is_file($crossExport)) { unlink($crossExport); } }
     }
     $data = json_decode(file_get_contents($export), true);

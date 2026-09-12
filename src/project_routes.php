@@ -1,14 +1,28 @@
 <?php
 declare(strict_types=1);
-$projectPages=['stores','store','store-edit','companies','company-edit','templates','template-edit','settings','smtp','photo','step-update','store-report','team'];
+$projectPages=['prerequisites','stores','store','store-edit','companies','company-edit','templates','template-edit','settings','smtp','photo','step-update','store-report','team'];
 if(in_array($page,$projectPages,true)){
     $subtasks=new SubtaskRepository($db,getenv('UPLOAD_ROOT')?:dirname(__DIR__).'/storage/uploads');
     $smtpSettings=new SmtpSettings(getenv('SMTP_CONFIG_DIR')?:dirname(__DIR__).'/storage/config');
     $id=is_string($_GET['id']??null)?$_GET['id']:null;
-    if(in_array($page,['store-edit','companies','company-edit','templates','template-edit','settings'],true)&&!Access::atLeast($user,'pm')){http_response_code(403);$page='forbidden';}
+    if(in_array($page,['prerequisites','store-edit','companies','company-edit','templates','template-edit','settings'],true)&&!Access::atLeast($user,'pm')){http_response_code(403);$page='forbidden';}
     if($page==='smtp'&&!Access::atLeast($user,'admin')){http_response_code(403);$page='forbidden';}
     if($page==='team'&&!Access::atLeast($user,'contractor_admin')){http_response_code(403);$page='forbidden';}
     try{
+        if($page==='prerequisites'&&$isPost){
+            $repository=new PrerequisiteRepository($project);
+            $action=ProjectRepository::text($_POST,'action',30,true);
+            if($action==='add-item')$repository->addItem($user,$_POST);
+            elseif($action==='add-status')$repository->addStatus($user,ProjectRepository::text($_POST,'id',36,true),$_POST);
+            elseif($action==='save-item')$repository->save($user,ProjectRepository::text($_POST,'id',36,true),$_POST);
+            else throw new DomainException('Invalid prerequisite action.');
+            $_SESSION['flash']='Prerequisites saved.';redirect('prerequisites');
+        }
+        if($page==='store'&&$isPost&&($_POST['action']??'')==='prerequisite-status'){
+            (new PrerequisiteRepository($project))->setStatus($user,$id??'',ProjectRepository::text($_POST,'prerequisite_id',36,true),ProjectRepository::text($_POST,'status_id',36,true));
+            if(($_GET['order_ajax']??'')==='1'){header('Content-Type: application/json');echo json_encode(['saved'=>true]);exit;}
+            $_SESSION['flash']='Prerequisite status saved.';redirect('store',['id'=>$id]);
+        }
         if($page==='store'&&$isPost&&($_POST['action']??'')==='unifi-order'){
             $project->setUnifiOrder($user,$id??'',ProjectRepository::text($_POST,'unifi_order',20,true));
             if(($_GET['order_ajax']??'')==='1'){header('Content-Type: application/json');echo json_encode(['saved'=>true]);exit;}
@@ -93,6 +107,7 @@ if(in_array($page,$projectPages,true)){
         if($page==='step-update')$page='step-error';
     }
     if($page==='photo'&&$isPost){http_response_code(400);$page='step-error';}
+    if($page==='prerequisites')$prerequisiteDefinitions=(new PrerequisiteRepository($project))->definitions();
     if($page==='stores'){
         $storeQuery=is_string($_GET['q']??null)?mb_substr(trim($_GET['q']),0,160):'';
         $showAllStores=$project->showAllStores($user['id']);

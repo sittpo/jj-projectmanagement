@@ -1,0 +1,16 @@
+<div class="page-heading"><div><div class="eyebrow">PROJECT MANAGEMENT</div><h1>Prerequisites</h1><p>Manage readiness items for all stores. Status order controls each dropdown.</p></div></div>
+<section class="panel form-panel"><h2>Add prerequisite</h2><form method="post" class="prereq-add"><?= csrf() ?><input type="hidden" name="action" value="add-item"><label>Prerequisite name<input name="name" maxlength="160" required></label><button class="button primary">Add prerequisite</button></form></section>
+<p class="prereq-help">Requires attention applies when fewer than X working days remain, excluding today and including installation day. Working days are Monday–Friday. New items apply to all stores with the default status; reordering does not change saved selections. Inactive items are hidden without deleting history.</p>
+<?php foreach($prerequisiteDefinitions as $definition): ?>
+<section class="panel prereq-definition"><div class="panel-heading"><h2><?= e($definition['name']) ?></h2></div>
+<form method="post" class="step-content"><?= csrf() ?><input type="hidden" name="action" value="save-item"><input type="hidden" name="id" value="<?= e($definition['id']) ?>">
+<div class="form-grid"><label>Item name<input name="name" maxlength="160" required value="<?= e($definition['name']) ?>"></label><label class="checkbox-label"><input type="checkbox" name="active" <?= $definition['active']?'checked':'' ?>>Active</label></div>
+<div class="table-scroll"><table class="prereq-status-table"><thead><tr><th>Order</th><th>Status</th><th>Default</th><th>Requires attention</th><th>Working days</th></tr></thead><tbody>
+<?php foreach($definition['statuses'] as $status): ?><tr><td><input type="hidden" name="status_ids[]" value="<?= e($status['id']) ?>"><div class="button-group"><button type="button" class="button prereq-up" aria-label="Move <?= e($status['name']) ?> up">↑</button><button type="button" class="button prereq-down" aria-label="Move <?= e($status['name']) ?> down">↓</button></div></td>
+<td><input name="labels[<?= e($status['id']) ?>]" aria-label="Status name" value="<?= e($status['name']) ?>" maxlength="120" required></td>
+<td><input type="radio" name="default_status" value="<?= e($status['id']) ?>" aria-label="Default <?= e($status['name']) ?>" <?= $status['is_default']?'checked':'' ?> required></td>
+<td><input type="checkbox" name="attention[<?= e($status['id']) ?>]" aria-label="Requires attention for <?= e($status['name']) ?>" <?= $status['attention_days']!==null?'checked':'' ?>></td>
+<td><input type="number" name="days[<?= e($status['id']) ?>]" min="1" max="365" aria-label="Working days for <?= e($status['name']) ?>" value="<?= e($status['attention_days']??7) ?>"></td></tr><?php endforeach; ?>
+</tbody></table></div><div class="form-actions"><button class="button primary">Save prerequisite</button></div></form>
+<form method="post" class="prereq-add step-content"><?= csrf() ?><input type="hidden" name="action" value="add-status"><input type="hidden" name="id" value="<?= e($definition['id']) ?>"><label>New status<input name="name" maxlength="120" required></label><button class="button">Add status</button></form>
+</section><?php endforeach; ?>

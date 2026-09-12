@@ -279,3 +279,5 @@ document.querySelectorAll('.photo-delete-form').forEach(form=>{
         button.disabled=true;button.textContent='Deleting…';
     });
 });
+
+document.querySelectorAll('.prereq-up,.prereq-down').forEach(button=>button.addEventListener('click',()=>{const row=button.closest('tr');if(button.classList.contains('prereq-up')){const previous=row.previousElementSibling;if(previous)row.parentNode.insertBefore(row,previous);}else{const next=row.nextElementSibling;if(next)row.parentNode.insertBefore(next,row);}}));

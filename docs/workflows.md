@@ -135,3 +135,7 @@ Stores without an installation date are hidden from contractors and contractor a
 Subtask completion saves immediately when checked or unchecked. This updates only completion, preserving saved notes, draft text, and selected uploads. Save step still saves notes and photos. Autosave uses the same role, store, sign-off lock, and version checks as normal step saves, and records an audit entry.
 
 Uploaded photos have a Delete photo action with confirmation. Contractors and contractor admins may delete evidence on accessible, unsigned steps; signed-off steps restrict deletion to PM/Admin. Deletion locks the step, validates its version, removes the photo record and file, and records the filename and actor in the audit details. PM deletion preserves sign-off.
+
+## Configurable prerequisites
+
+Project management → Prerequisites lets PMs/Admins add and rename readiness items and statuses, reorder dropdown choices using Up/Down then Save prerequisite, choose the default status, and deactivate items. Each status can require attention when fewer than its configured 1–365 working days remain. Rules apply to all unfinished stores and are shared with contractor status bullets. New items use their default for stores without a saved selection. Existing selections survive renaming and reordering. Schema 7 migrates existing UniFi selections and 7/3-day rules into portable prerequisite, status, and per-store selection tables. The old UniFi column is retained only for backward compatibility; configurable selections are authoritative.

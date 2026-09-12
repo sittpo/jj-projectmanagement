@@ -12,13 +12,12 @@ final class DashboardReport
         $total=count($stores);$complete=count(array_filter($stores,fn($s)=>(bool)$s['finished']));
         $upcoming=array_values(array_filter($stores,fn($s)=>!$s['finished']&&$s['target_date']&&$s['target_date']>=$today));
         $overdue=array_values(array_filter($stores,fn($s)=>!$s['finished']&&$s['target_date']&&$s['target_date']<$today));
-        $attention=[];
+        $attention=[];$prereqs=new PrerequisiteRepository($project);$definitions=$prereqs->definitions(true);
         foreach($stores as $store){
             $reasons=[];
             if(!$store['target_date'])$reasons[]='Installation date missing';
             elseif(!$store['finished']&&$store['target_date']<$today)$reasons[]='Overdue · '.$store['target_date'];
-            $orderReason=ProjectRepository::unifiAttention($store,$today);
-            if($orderReason)$reasons[]=$orderReason;
+            foreach($prereqs->forStore($store,$definitions) as $item){$issue=PrerequisiteRepository::issue($store,$item,$today);if($issue)$reasons[]=$issue;}
             if($reasons)$attention[]=$store+['reason'=>implode(' · ',$reasons)];
         }
         $streams=$project->rows("SELECT t.category,COUNT(*) AS total,SUM(CASE WHEN EXISTS(SELECT 1 FROM subtasks st WHERE st.task_id=t.id)

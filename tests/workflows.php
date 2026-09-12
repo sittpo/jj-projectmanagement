@@ -212,6 +212,27 @@ try{
     verify(SubtaskRepository::displayStatus(array_replace($statusStep,['complete'=>1,'photo_count'=>1]))==='Awaiting sign-off','Completion takes precedence over In progress');
     verify(SubtaskRepository::displayStatus(array_replace($statusStep,['signed_at'=>'2026-09-12T12:00:00Z','complete'=>1]))==='Signed off','Sign-off takes precedence');
 
+
+    $prereqs=new PrerequisiteRepository($p);
+    $prereqs->addItem($actors['manager'],['name'=>'Access arranged']);
+    $definition=array_values(array_filter($prereqs->definitions(),fn($d)=>$d['name']==='Access arranged'))[0];
+    $prereqs->addStatus($actors['admin'],$definition['id'],['name'=>'Confirmed']);
+    $definition=array_values(array_filter($prereqs->definitions(),fn($d)=>$d['id']===$definition['id']))[0];
+    $firstStatus=$definition['statuses'][0]['id'];$confirmed=$definition['statuses'][1]['id'];
+    $prereqs->save($actors['manager'],$definition['id'],['name'=>'Access arranged','active'=>1,'status_ids'=>[$confirmed,$firstStatus],'labels'=>[$firstStatus=>'Pending',$confirmed=>'Confirmed'],'default_status'=>$firstStatus,'attention'=>[$firstStatus=>1],'days'=>[$firstStatus=>5]]);
+    $definition=array_values(array_filter($prereqs->definitions(),fn($d)=>$d['id']===$definition['id']))[0];
+    verify(array_column($definition['statuses'],'id')===[$confirmed,$firstStatus],'Prerequisite dropdown order is configurable');
+    $storeForRules=Access::store($db,$actors['manager'],$sortIds[0])+['finished'=>0];
+    $item=array_values(array_filter($prereqs->forStore($storeForRules),fn($i)=>$i['id']===$definition['id']))[0];
+    verify($item['status']['id']===$firstStatus,'New prerequisite applies default to existing stores independently of order');
+    verify(PrerequisiteRepository::issue($storeForRules,$item,$today)!==null,'Custom status threshold raises attention');
+    $prereqs->setStatus($actors['manager'],$storeForRules['id'],$definition['id'],$confirmed);
+    $item=array_values(array_filter($prereqs->forStore($storeForRules),fn($i)=>$i['id']===$definition['id']))[0];
+    verify(PrerequisiteRepository::issue($storeForRules,$item,$today)===null,'Status without attention clears custom alert');
+    denied(fn()=>$prereqs->setStatus($actors['worker'],$storeForRules['id'],$definition['id'],$firstStatus),'Contractor cannot edit custom prerequisite');
+    denied(fn()=>$prereqs->setStatus($actors['manager'],$storeForRules['id'],$definition['id'],'ordered'),'Cross-item status rejected');
+    denied(fn()=>$prereqs->addItem($actors['lead'],['name'=>'Forbidden']),'Contractor admin cannot manage prerequisite definitions');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);
