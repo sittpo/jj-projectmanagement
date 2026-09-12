@@ -18,10 +18,10 @@
         <p class="nav-heading">Workspace</p>
         <a class="nav-link <?= $page === 'dashboard' ? 'selected' : '' ?>" <?= $page === 'dashboard' ? 'aria-current="page"' : '' ?> href="<?= e(url('dashboard')) ?>"><?= icon('grid') ?>Dashboard</a>
         <a class="nav-link <?= in_array($page,['stores','store','store-edit'])?'selected':'' ?>" href="<?= e(url('stores')) ?>"><?= icon('store') ?>Stores</a>
-        <?php if(Access::atLeast($user,'contractor_admin')): ?><a class="nav-link <?= $page==='team'?'selected':'' ?>" href="<?= e(url('team')) ?>"><?= icon('users') ?>Company team</a><?php endif; ?>
+        <?php if(Access::atLeast($user,'contractor_admin')): ?><a class="nav-link <?= $page==='team'?'selected':'' ?>" href="<?= e(url('team')) ?>"><?= icon('team') ?>Company team</a><?php endif; ?>
         <?php if(Access::atLeast($user,'pm')): ?>
         <p class="nav-heading">Project management</p>
-        <?php foreach(['prerequisites'=>['Prerequisites','check'],'templates'=>['Task templates','check'],'companies'=>['Contracting companies','users'],'settings'=>['Reminder schedule','calendar']] as $route=>$nav): ?><a class="nav-link <?= $page===$route?'selected':'' ?>" href="<?= e(url($route)) ?>"><?= icon($nav[1]) ?><?= e($nav[0]) ?></a><?php endforeach; ?>
+        <?php foreach(['prerequisites'=>['Prerequisites','check'],'templates'=>['Task templates','tasks'],'companies'=>['Contracting companies','building'],'settings'=>['Reminder schedule','calendar']] as $route=>$nav): ?><a class="nav-link <?= $page===$route?'selected':'' ?>" href="<?= e(url($route)) ?>"><?= icon($nav[1]) ?><?= e($nav[0]) ?></a><?php endforeach; ?>
         <?php endif; ?>
         <?php if ($user['role'] === 'admin'): ?>
         <p class="nav-heading">Administration</p>

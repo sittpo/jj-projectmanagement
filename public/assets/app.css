@@ -1475,3 +1475,12 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 
 .badge.in-progress {background:#ffe4a3;color:#684400}
 :root[data-theme=dark] .badge.in-progress {background:#715019;color:#fff0c2}
+
+.prereq-add > label {display:flex;flex-direction:column;gap:8px;flex:1;max-width:480px;font-weight:600}
+.prereq-add > label input {width:100%;min-width:0}
+.prereq-definition .form-grid > .checkbox-label {flex-direction:row;align-items:center;gap:8px}
+@media(max-width:600px){.prereq-add > label {flex-basis:100%;max-width:none}.prereq-add > button {width:100%}}
+
+.prereq-status-table {min-width:760px}
+.prereq-status-table td:nth-child(2) input {width:200px;min-width:160px}
+.prereq-status-table .button-group {flex-wrap:nowrap}

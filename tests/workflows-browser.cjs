@@ -348,6 +348,11 @@ module.exports=async({page,context,browser,base,password,root})=>{
     assert.equal((await context.request.get(route('store',storeId))).status(),200);
 
     await page.goto(route('prerequisites'));
+    await page.setViewportSize({width:1440,height:1000});
+    await page.screenshot({path:path.join(root,'storage/prerequisites-design-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});
+    await page.screenshot({path:path.join(root,'storage/prerequisites-design-mobile.png'),fullPage:true});
+    await page.setViewportSize({width:1440,height:1000});
     await page.getByLabel('Prerequisite name',{exact:true}).fill('Access arranged');
     await page.getByRole('button',{name:'Add prerequisite',exact:true}).click();
     let definitionPanel=page.locator('.prereq-definition').filter({has:page.getByRole('heading',{name:'Access arranged',exact:true})});
