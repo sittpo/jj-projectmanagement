@@ -79,6 +79,31 @@ try{
     denied(fn()=>$service->test('invalid-address',$manualTransport),'SMTP test rejects invalid recipients');
     $testCalls=[];$service->test('test@example.test',function($to,$subject,$body)use(&$testCalls){$testCalls[]=[$to,$subject];});
     verify($testCalls[0][0]==='test@example.test'&&str_contains($testCalls[0][1],'SMTP test'),'SMTP test targets the specified recipient');
+
+    verify(!$p->showAllStores($actors['admin']['id']),'Show all defaults off');
+    $p->saveStorePreference($actors['admin']['id'],true);
+    verify((new ProjectRepository($db))->showAllStores($actors['admin']['id']),'Preference persists across repository instances');
+    verify(!$p->showAllStores($actors['worker']['id']),'Preference is isolated per user');
+    $p->saveStorePreference($actors['admin']['id'],false);
+    verify(!$p->showAllStores($actors['admin']['id']),'Preference can be turned off');
+    verify(count($p->storeListing($actors['worker'],true,'store-a'))===1,'Store code search is case insensitive');
+    verify(count($p->storeListing($actors['worker'],true,$storeId))===1,'Internal store ID can be searched');
+    verify(count($p->storeListing($actors['outsider'],true,'Alpha'))===0,'Search and show all preserve company isolation');
+    verify(count($p->storeListing($actors['admin'],true,'%'))===0,'Search treats wildcard characters literally');
+    foreach($steps->list($storeId) as $item){
+        $steps->update($actors['admin'],$item['id'],['action'=>'save','version'=>$item['version'],'complete'=>1]);
+    }
+    verify(count($p->storeListing($actors['admin'],false,'STORE-A'))===1,'Completed checklist awaiting sign-off remains unfinished');
+    foreach($steps->list($storeId) as $item)$steps->update($actors['admin'],$item['id'],['action'=>'signoff','version'=>$item['version']]);
+    verify(count($p->storeListing($actors['admin'],false,'STORE-A'))===0,'Signed-off stores are hidden by default');
+    verify(count($p->storeListing($actors['admin'],true,'STORE-A'))===1,'Show all includes signed-off stores');
+    $sortIds=[];
+    foreach(['2020-01-01',$today,'2099-01-01',''] as $index=>$date){
+        $fixture=$input;$fixture['code']='SORT-'.$index;$fixture['name']='Sort '.$index;$fixture['target_date']=$date;
+        $sortIds[]=$p->storeSave($fixture,null);
+    }
+    verify(array_column($p->storeListing($actors['admin'],false,'SORT-'),'id')===$sortIds,'Installation order includes overdue first and unscheduled last');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

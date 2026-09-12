@@ -4,6 +4,7 @@ require dirname(__DIR__) . '/src/database.php';
 require dirname(__DIR__) . '/src/Schema.php';
 require dirname(__DIR__) . '/src/UserRepository.php';
 require dirname(__DIR__) . '/src/DataTransfer.php';
+require dirname(__DIR__) . '/src/ProjectRepository.php';
 function check(bool $condition, string $message): void {
     if (!$condition) { throw new RuntimeException($message); }
     echo "PASS: $message\n";
@@ -53,12 +54,14 @@ $db->prepare('INSERT INTO task_photos (id,task_id,uploaded_by,storage_key,origin
 $export = dirname(__DIR__) . '/storage/test-export-' . bin2hex(random_bytes(5)) . '.json';
 $invalid = $export . '.invalid';
 try {
+    (new ProjectRepository($db))->saveStorePreference($admin['id'],true);
     $transfer = new DataTransfer($db);
     $transfer->export($export);
     rejects(fn() => $transfer->import($export, 'production'), 'Import into production rejected');
     $db->exec("UPDATE stores SET name='Changed'");
     $transfer->import($export, 'dev');
     check($db->query('SELECT name FROM stores')->fetchColumn() === 'Test Store', 'Data round trip restores store data');
+    check((new ProjectRepository($db))->showAllStores($admin['id']), 'Account preferences survive data transfer');
     check($db->query('SELECT task_id FROM task_photos')->fetchColumn() === $task, 'Stable IDs and relationships survive export/import');
     check((int)$users->find($admin['id'])['session_version'] !== (int)$admin['session_version'], 'Import invalidates old sessions');
 
@@ -68,6 +71,7 @@ try {
         Schema::migrate($sqlite);
         (new DataTransfer($sqlite))->import($export, 'dev');
         check($sqlite->query('SELECT task_id FROM task_photos')->fetchColumn() === $task, 'MariaDB-to-SQLite import preserves relationships');
+        check((new ProjectRepository($sqlite))->showAllStores($admin['id']), 'Account preferences transfer to SQLite');
         $crossExport = $export . '.cross';
         try {
             (new DataTransfer($sqlite))->export($crossExport);

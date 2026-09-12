@@ -135,3 +135,54 @@ document.querySelectorAll('.file-picker-input').forEach(input=>input.addEventLis
         touchX=null;
     },{passive:true});
 })();
+
+(() => {
+    const search=document.querySelector('.store-search-form');
+    if(!search)return;
+    const input=search.querySelector('[name=q]'),preference=document.querySelector('.store-preference-form');
+    const checkbox=preference.querySelector('[name=show_all]'),results=document.querySelector('#store-results');
+    const feedback=document.querySelector('.stores-feedback');
+    let timer,controller,revision=0;
+    const refresh=async()=>{
+        clearTimeout(timer);
+        const current=++revision;
+        controller?.abort();controller=new AbortController();
+        const url=new URL(search.action,location.href);
+        url.search=new URLSearchParams({page:'stores',q:input.value,fragment:'1'});
+        results.setAttribute('aria-busy','true');
+        feedback.textContent='Searching…';
+        try{
+            const response=await fetch(url,{signal:controller.signal});
+            const html=await response.text();
+            if(!response.ok||response.redirected||!html.includes('table-scroll'))throw new Error('Search failed');
+            if(current!==revision)return;
+            results.innerHTML=html;
+            feedback.textContent=results.querySelector('h2').textContent+' shown.';
+            url.searchParams.delete('fragment');history.replaceState(null,'',url);
+        }catch(error){
+            if(error.name!=='AbortError'&&current===revision)feedback.textContent='Could not update stores. Refresh the page and try again.';
+        }finally{if(current===revision)results.removeAttribute('aria-busy');}
+    };
+    input.addEventListener('input',()=>{
+        clearTimeout(timer);++revision;controller?.abort();
+        if(!input.matches(':invalid'))timer=setTimeout(refresh,750);
+    });
+    search.addEventListener('submit',event=>{event.preventDefault();refresh();});
+    checkbox.addEventListener('change',async()=>{
+        const selected=checkbox.checked;
+        checkbox.disabled=true;
+        const data=new FormData(preference);
+        // Disabled controls are excluded from FormData.
+        if(selected)data.set('show_all','1');else data.delete('show_all');
+        feedback.textContent='Saving preference…';
+        try{
+            const url=new URL(preference.getAttribute('action'),location.href);url.searchParams.set('fragment','1');
+            const response=await fetch(url,{method:'POST',body:data});
+            if(!response.ok||!(await response.json()).saved)throw new Error('Save failed');
+            await refresh();
+        }catch{
+            checkbox.checked=!selected;
+            feedback.textContent='Could not save your preference. Please try again.';
+        }finally{checkbox.disabled=false;}
+    });
+})();

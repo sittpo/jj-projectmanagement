@@ -107,3 +107,9 @@ Admins can enter a **Test recipient** and click **Test SMTP** on the SMTP settin
 Photo thumbnails open in an in-page lightbox with previous/next buttons, arrow keys, Escape-to-close, mobile swipe support, and focus restoration. Photo access remains protected by store permissions.
 
 Schema version 3 adds a separate manual reminder log; automatic reminder history and duplicate prevention remain unchanged. Both log tables are included in portable data exports.
+
+## Store listing
+
+Store search updates after 750 ms and matches names, store codes, and internal IDs. Results remain scoped to the signed-in user's store access. Unfinished stores appear by installation date (oldest first), with undated stores last. Checklist stores remain unfinished until every step is complete and signed off; legacy stores without checklists use task completion. Due-today rows are teal and overdue rows red, based on Europe/Copenhagen dates. Completed stores are not highlighted as overdue.
+
+Show all stores is stored per account in schema version 4's user_preferences table and included in data exports. It applies across sessions and devices when the Stores page loads or refreshes. Search text is retained in the page URL, independently of the saved preference.

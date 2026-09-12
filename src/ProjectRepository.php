@@ -26,6 +26,42 @@ final class ProjectRepository
         if ($user['role']==='contractor_admin') return $this->rows($sql.' WHERE s.company_id=? ORDER BY s.name',[$user['company_id']]);
         return $this->rows($sql.' WHERE s.company_id=? AND EXISTS(SELECT 1 FROM store_assignments a WHERE a.store_id=s.id AND a.user_id=?) ORDER BY s.name',[$user['company_id'],$user['id']]);
     }
+    public function showAllStores(string $userId): bool
+    {
+        return (bool)($this->rows('SELECT show_all_stores FROM user_preferences WHERE user_id=?',[$userId])[0]['show_all_stores']??false);
+    }
+    public function saveStorePreference(string $userId,bool $showAll): void
+    {
+        $sql=$this->db->getAttribute(PDO::ATTR_DRIVER_NAME)==='mysql'
+            ?'INSERT INTO user_preferences(user_id,show_all_stores) VALUES(?,?) ON DUPLICATE KEY UPDATE show_all_stores=VALUES(show_all_stores)'
+            :'INSERT INTO user_preferences(user_id,show_all_stores) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET show_all_stores=excluded.show_all_stores';
+        $this->execute($sql,[$userId,(int)$showAll]);
+    }
+    public function storeListing(array $user,bool $showAll=false,string $query=''): array
+    {
+        // Checklist sign-off is authoritative; legacy stores without checklists use task status.
+        $sql="SELECT s.*,c.name AS company_name,
+            CASE WHEN EXISTS(SELECT 1 FROM tasks t JOIN subtasks st ON st.task_id=t.id WHERE t.store_id=s.id)
+            THEN NOT EXISTS(SELECT 1 FROM tasks t JOIN subtasks st ON st.task_id=t.id WHERE t.store_id=s.id AND (st.complete=0 OR st.signed_at IS NULL))
+            ELSE EXISTS(SELECT 1 FROM tasks t WHERE t.store_id=s.id) AND NOT EXISTS(SELECT 1 FROM tasks t WHERE t.store_id=s.id AND t.status<>'completed')
+            END AS finished FROM stores s LEFT JOIN companies c ON c.id=s.company_id";
+        $conditions=[];$args=[];
+        if(!Access::atLeast($user,'pm')){
+            if(!$user['company_id'])return [];
+            $conditions[]='s.company_id=?';$args[]=$user['company_id'];
+            if($user['role']!=='contractor_admin'){
+                $conditions[]='EXISTS(SELECT 1 FROM store_assignments a WHERE a.store_id=s.id AND a.user_id=?)';$args[]=$user['id'];
+            }
+        }
+        if($query!==''){
+            $pattern='%'.str_replace(['!','%','_'],['!!','!%','!_'],mb_strtolower($query)).'%';
+            $conditions[]="(LOWER(s.name) LIKE ? ESCAPE '!' OR LOWER(s.code) LIKE ? ESCAPE '!' OR LOWER(s.id) LIKE ? ESCAPE '!')";
+            array_push($args,$pattern,$pattern,$pattern);
+        }
+        if($conditions)$sql.=' WHERE '.implode(' AND ',$conditions);
+        $sql='SELECT * FROM ('.$sql.') listing'.($showAll?'':' WHERE finished=0').' ORDER BY CASE WHEN target_date IS NULL THEN 1 ELSE 0 END,target_date,name,id';
+        return $this->rows($sql,$args);
+    }
     public function templates(): array { return $this->rows('SELECT * FROM task_templates ORDER BY ui_order,id'); }
     public function templateSave(array $input,?string $id): void
     {

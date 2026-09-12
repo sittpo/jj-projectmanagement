@@ -9,6 +9,12 @@ if(in_array($page,$projectPages,true)){
     if($page==='smtp'&&!Access::atLeast($user,'admin')){http_response_code(403);$page='forbidden';}
     if($page==='team'&&!Access::atLeast($user,'contractor_admin')){http_response_code(403);$page='forbidden';}
     try{
+        if($page==='stores'&&$isPost){
+            if(($_POST['action']??'')!=='store-preference')throw new DomainException('Invalid store preference action.');
+            $project->saveStorePreference($user['id'],isset($_POST['show_all']));
+            if(($_GET['fragment']??'')==='1'){header('Content-Type: application/json');echo json_encode(['saved'=>true]);exit;}
+            redirect('stores',['q'=>ProjectRepository::text($_POST,'q',160)]);
+        }
         if(in_array($page,['store','store-edit','store-report'],true)&&$id)$store=Access::store($db,$user,$id);
         if($page==='photo'){
             $photo=$subtasks->photo($user,$id??'');
@@ -56,7 +62,17 @@ if(in_array($page,$projectPages,true)){
         error_log((string)$exception);$error='The change could not be saved. Check for duplicate codes or names and try again.';
         if($page==='step-update')$page='step-error';
     }
-    if($page==='stores')$storeRows=$project->stores($user);
+    if($page==='stores'){
+        $storeQuery=is_string($_GET['q']??null)?mb_substr(trim($_GET['q']),0,160):'';
+        $showAllStores=$project->showAllStores($user['id']);
+        $storeToday=(new DateTimeImmutable('now',new DateTimeZone('Europe/Copenhagen')))->format('Y-m-d');
+        $storeRows=$project->storeListing($user,$showAllStores,$storeQuery);
+        if(($_GET['fragment']??'')==='1'){
+            if($isPost){http_response_code(400);header('Content-Type: application/json');echo json_encode(['error'=>$error??'Could not save preference.']);}
+            else require dirname(__DIR__).'/views/stores-results.php';
+            exit;
+        }
+    }
     if(in_array($page,['store','store-report'],true)){
         if(!isset($store)){http_response_code(404);exit('Store not found.');}
         $steps=$subtasks->list($store['id'],$page==='store-report'?'report_order':'ui_order');

@@ -1413,3 +1413,17 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .lightbox-error{padding:16px;color:var(--ink)}
 .button:disabled,.icon-button:disabled{cursor:default;opacity:.55}
 @media(max-width:700px){.lightbox-stage{gap:5px;padding:6px}.lightbox-image{max-width:calc(100% - 82px)}.manual-reminder-panel .panel-heading{align-items:flex-start}.lightbox-toolbar,.lightbox-caption{padding:12px}}
+
+.stores-toolbar {display:flex;align-items:end;justify-content:space-between;gap:24px;padding:20px 22px 12px;flex-wrap:wrap}
+.store-search-form {flex:1;max-width:520px}
+.store-search-form label {display:block;font-weight:600;margin-bottom:8px}
+.store-search-controls {display:flex;gap:8px}
+.store-search-controls input {min-width:0;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
+.store-preference-form {padding-bottom:9px}
+.stores-help,.stores-feedback {padding:0 22px 12px;color:var(--muted);font-size:12px}
+.stores-feedback:empty {display:none}
+.store-status {font-weight:650;white-space:nowrap}
+.stores-panel tr.store-today td {background:#09373d;color:#fff;border-color:#28555a}
+.stores-panel tr.store-overdue td {background:#8f2731;color:#fff;border-color:#a94b54}
+.stores-panel tr.store-today td small,.stores-panel tr.store-overdue td small,.stores-panel tr.store-today .store-name,.stores-panel tr.store-overdue .store-name {color:#fff}
+@media(max-width:600px){.stores-toolbar{align-items:stretch;gap:16px;padding:16px}.store-search-form{flex-basis:100%}.stores-help,.stores-feedback{padding-left:16px;padding-right:16px}.stores-panel .panel-heading{align-items:start;flex-direction:column;gap:8px}}

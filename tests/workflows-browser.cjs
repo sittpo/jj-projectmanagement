@@ -150,6 +150,61 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await upload.setInputFiles({name:'fake.jpg',mimeType:'image/jpeg',buffer:Buffer.from('<?php echo "not a photo"; ?>')});
     await worker.tab.locator('#step-'+stepId).getByRole('button',{name:'Save step',exact:true}).click();
     assert((await worker.tab.textContent('body')).includes('valid JPEG, PNG, or WebP'));
+
+    const eventually=async(check)=>{
+        const deadline=Date.now()+6000;
+        while(Date.now()<deadline){if(await check())return;await new Promise(resolve=>setTimeout(resolve,100));}
+        assert(await check(),'Store UI did not reach the expected state');
+    };
+    const expect=locator=>({
+        toHaveCount:n=>eventually(async()=>await locator.count()===n),
+        toContainText:text=>eventually(async()=>(await locator.textContent())?.includes(text)),
+        toHaveText:text=>eventually(async()=>(await locator.textContent())===text),
+        toBeVisible:()=>eventually(()=>locator.isVisible()),
+        toBeChecked:()=>eventually(()=>locator.isChecked()),
+        not:{toBeChecked:()=>eventually(async()=>!await locator.isChecked())}
+    });
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Copenhagen',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    const past='2020-01-01';
+    for(const [code,name,date] of [['F-TODAY','Filter Today',today],['F-PAST','Filter Overdue',past],['F-LATER','Filter Upcoming','2099-01-01'],['F-NONE','Filter Unscheduled','']]){
+        const response=await post(context,'store-edit',{code,name,city:'Test City',owner_name:'Owner',target_date:date});
+        assert(response.ok());
+    }
+    await page.goto(route('stores'));
+    const search=page.getByRole('searchbox',{name:'Search stores'});
+    await search.fill('Filter');
+    await expect(page.locator('#store-results tbody tr')).toHaveCount(4);
+    assert.deepEqual(await page.locator('#store-results .store-name').allTextContents(),['Filter Overdue','Filter Today','Filter Upcoming','Filter Unscheduled']);
+    await expect(page.locator('.store-today')).toContainText('Due today');
+    await expect(page.locator('.store-overdue')).toContainText('Overdue');
+    await search.fill('f-today');
+    await expect(page.locator('#store-results tbody tr')).toHaveCount(1);
+    await expect(page.locator('#store-results')).toContainText('Filter Today');
+    await search.fill('no matching store');
+    await expect(page.getByRole('heading',{name:'No matching stores'})).toBeVisible();
+    await search.fill('Filter');
+    await expect(page.locator('#store-results tbody tr')).toHaveCount(4);
+    await page.getByLabel('Show all stores',{exact:true}).check();
+    await expect(page.locator('.stores-feedback')).toHaveText('4 stores shown.');
+    await page.reload();
+    await expect(page.getByLabel('Show all stores',{exact:true})).toBeChecked();
+    const another=await login('admin');
+    await another.tab.goto(route('stores'));
+    await expect(another.tab.getByLabel('Show all stores',{exact:true})).toBeChecked();
+    await another.tab.getByLabel('Show all stores',{exact:true}).uncheck();
+    await expect(another.tab.locator('.stores-feedback')).toContainText('stores shown.');
+    await page.reload();
+    await expect(page.getByLabel('Show all stores',{exact:true})).not.toBeChecked();
+    await another.ctx.close();
+    await worker.tab.goto(route('stores')+'&q=Filter');
+    await expect(worker.tab.locator('#store-results tbody tr')).toHaveCount(0);
+    assert.equal((await context.request.post(route('stores')+'&fragment=1',{form:{action:'store-preference',show_all:'1'}})).status(),403);
+    await page.setViewportSize({width:1440,height:1080});
+    await page.screenshot({path:path.join(root,'storage/stores-filter-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.screenshot({path:path.join(root,'storage/stores-filter-mobile.png'),fullPage:true});
+
     await page.goto(route('users'));
     for(const account of [worker,lead,outsider,pm])await account.ctx.close();
     console.log('PASS: workflow UI, company isolation, ordering, store creation, photo validation/authorization, PM sign-off, and responsive report preview.');

@@ -1,0 +1,7 @@
+<div class="panel-heading"><h2><?= count($storeRows) ?> <?= count($storeRows)===1?'store':'stores' ?></h2><span class="field-help"><?= $showAllStores?'All stores':'Unfinished stores' ?> · Installation date order</span></div>
+<div class="table-scroll"><table><thead><tr><th>Store</th><th>Company</th><th>Installation</th><th>Status</th><th>Reminder due</th></tr></thead><tbody>
+<?php foreach($storeRows as $row):
+$status=$row['finished']?'Completed':(!$row['target_date']?'Not scheduled':($row['target_date']<$storeToday?'Overdue':($row['target_date']===$storeToday?'Due today':'Upcoming')));
+$rowClass=$status==='Overdue'?'store-overdue':($status==='Due today'?'store-today':'');
+?><tr class="<?= $rowClass ?>"><td><a class="store-name" href="<?= e(url('store',['id'=>$row['id']])) ?>"><strong><?= e($row['name']) ?></strong></a><small><?= e($row['code']) ?> · <?= e($row['city']) ?></small></td><td><?= e($row['company_name']?:'Unassigned') ?></td><td><?= e($row['target_date']?:'Not scheduled') ?></td><td><span class="store-status"><?= e($status) ?></span></td><td><?= e($row['reminders_enabled']?($project->reminderDate($row)?:'Not scheduled'):'Disabled') ?></td></tr><?php endforeach; ?>
+</tbody></table><?php if(!$storeRows): ?><div class="empty-state"><h2>No matching stores</h2><p>Try another name or ID, or enable “Show all stores”. Only stores you have access to are shown.</p></div><?php endif; ?></div>
