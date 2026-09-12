@@ -39,11 +39,11 @@ SQLite is a convenient local starting point, not a guarantee of MariaDB SQL comp
 
 ## Git
 
-The repository uses `master`. Once a remote repository is chosen:
+Local development uses the `dev` branch and `APP_ENV=dev` for the time being. Push development changes to `origin/dev`. Only merge or push to `master` when explicitly requested. The remote is https://github.com/sittpo/jj-projectmanagement.git.
 
 ```powershell
-git remote add origin <repository-url>
-git push -u origin master
+git switch dev
+git push -u origin dev
 ```
 
 Do not commit `.env`, credentials, photo uploads or local database files.
