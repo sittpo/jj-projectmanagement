@@ -48,8 +48,8 @@ final class ProjectRepository
         $sql='SELECT s.*,c.name AS company_name FROM stores s LEFT JOIN companies c ON c.id=s.company_id';
         if (Access::atLeast($user,'pm')) return $this->rows($sql.' ORDER BY s.name');
         if (!$user['company_id']) return [];
-        if ($user['role']==='contractor_admin') return $this->rows($sql.' WHERE s.company_id=? ORDER BY s.name',[$user['company_id']]);
-        return $this->rows($sql.' WHERE s.company_id=? AND EXISTS(SELECT 1 FROM store_assignments a WHERE a.store_id=s.id AND a.user_id=?) ORDER BY s.name',[$user['company_id'],$user['id']]);
+        if ($user['role']==='contractor_admin') return $this->rows($sql.' WHERE s.target_date IS NOT NULL AND s.target_date<>\'\' AND s.company_id=? ORDER BY s.name',[$user['company_id']]);
+        return $this->rows($sql.' WHERE s.target_date IS NOT NULL AND s.target_date<>\'\' AND s.company_id=? AND EXISTS(SELECT 1 FROM store_assignments a WHERE a.store_id=s.id AND a.user_id=?) ORDER BY s.name',[$user['company_id'],$user['id']]);
     }
     public function showAllStores(string $userId): bool
     {
@@ -73,6 +73,7 @@ final class ProjectRepository
         $conditions=[];$args=[];
         if(!Access::atLeast($user,'pm')){
             if(!$user['company_id'])return [];
+            $conditions[]="s.target_date IS NOT NULL AND s.target_date<>''";
             $conditions[]='s.company_id=?';$args[]=$user['company_id'];
             if($user['role']!=='contractor_admin'){
                 $conditions[]='EXISTS(SELECT 1 FROM store_assignments a WHERE a.store_id=s.id AND a.user_id=?)';$args[]=$user['id'];

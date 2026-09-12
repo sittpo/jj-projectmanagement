@@ -296,6 +296,18 @@ module.exports=async({page,context,browser,base,password,root})=>{
     }));
 
 
+
+    await pm.tab.goto(route('store-edit',storeId));
+    await pm.tab.getByLabel('Installation date',{exact:true}).fill('');
+    await pm.tab.getByRole('button',{name:'Save store',exact:true}).click();
+    for(const account of [worker,lead]){
+        assert.equal((await account.ctx.request.get(route('store',storeId))).status(),403);
+        assert.equal((await account.ctx.request.get(route('store-report',storeId))).status(),403);
+        assert.equal((await account.ctx.request.get(base+photoUrl)).status(),403);
+        const listing=await account.ctx.request.get(route('stores')+'&q=ST-101');
+        assert(!(await listing.text()).includes('Harbour Point'));
+    }
+    assert.equal((await context.request.get(route('store',storeId))).status(),200);
     await page.goto(route('users'));
     for(const account of [worker,lead,outsider,pm])await account.ctx.close();
     console.log('PASS: workflow UI, company isolation, ordering, store creation, photo validation/authorization, PM sign-off, and responsive report preview.');

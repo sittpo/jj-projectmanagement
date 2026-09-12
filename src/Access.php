@@ -11,6 +11,7 @@ final class Access
         $q=$db->prepare('SELECT * FROM stores WHERE id=?');$q->execute([$id]);$store=$q->fetch();
         if (!$store) throw new DomainException('Store not found.');
         if (self::atLeast($user,'pm')) return $store;
+        if (!$store['target_date']) throw new AccessDenied('You do not have access to this store.');
         if (!$user['company_id'] || $store['company_id']!==$user['company_id']) throw new AccessDenied('You do not have access to this store.');
         if ($user['role']==='contractor_admin') return $store;
         $q=$db->prepare('SELECT COUNT(*) FROM store_assignments WHERE store_id=? AND user_id=?');$q->execute([$id,$user['id']]);

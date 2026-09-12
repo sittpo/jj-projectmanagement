@@ -160,6 +160,17 @@ try{
     denied(fn()=>$p->setUnifiOrder($actors['worker'],$storeId,'delivered'),'Contractor cannot update order');
     denied(fn()=>$p->setUnifiOrder($actors['admin'],$storeId,'invalid'),'Invalid order state rejected');
 
+    $unscheduled=$sortIds[3];
+    foreach(['worker','lead'] as $role){
+        verify(count($p->storeListing($actors[$role],true,'SORT-3'))===0,'Unscheduled store hidden from '.$role.' including Show all');
+        verify(!in_array($unscheduled,array_column($p->stores($actors[$role]),'id'),true),'Unscheduled store absent from legacy list for '.$role);
+        denied(fn()=>Access::store($db,$actors[$role],$unscheduled),'Unscheduled direct access denied for '.$role);
+    }
+    verify(Access::store($db,$actors['manager'],$unscheduled)['id']===$unscheduled,'PM retains unscheduled access');
+    $p->execute('UPDATE stores SET target_date=? WHERE id=?',[$today,$unscheduled]);
+    verify(Access::store($db,$actors['worker'],$unscheduled)['id']===$unscheduled,'Scheduling restores assigned contractor access');
+    $p->execute('UPDATE stores SET target_date=NULL WHERE id=?',[$unscheduled]);
+    denied(fn()=>Access::store($db,$actors['worker'],$unscheduled),'Removing date revokes contractor access');
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);
