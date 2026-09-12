@@ -1495,3 +1495,6 @@ input[type=file].sr-only{width:1px;max-width:1px;min-width:0;height:1px;padding:
 .store-select,.store-select-all {width:18px;height:18px;accent-color:var(--teal)}
 
 .csv-selected {overflow-wrap:anywhere;min-width:0}
+
+.overview-grid > .panel {display:flex;flex-direction:column}
+.overview-grid > .panel > .panel-foot {margin-top:auto}
