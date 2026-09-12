@@ -82,11 +82,11 @@ if ($page === 'user-edit') {
 }
 if ($page === 'report-export') {
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="sample-rollout-summary.csv"');
+    header('Content-Disposition: attachment; filename="rollout-summary.csv"');
     $output = fopen('php://output', 'w');
     fputcsv($output, ['Data source', 'Metric', 'Value', 'Unit', 'Note'], ',', '"', '');
-    foreach (DashboardReport::sample()['metrics'] as $metric) {
-        fputcsv($output, ['Sample data', $metric['label'], $metric['value'], $metric['unit'], $metric['trend']], ',', '"', '');
+    foreach (DashboardReport::live($project,$user)['metrics'] as $metric) {
+        fputcsv($output, ['Live data', $metric['label'], $metric['value'], $metric['unit'], $metric['trend']], ',', '"', '');
     }
     fclose($output); exit;
 }

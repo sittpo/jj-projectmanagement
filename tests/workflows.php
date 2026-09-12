@@ -123,6 +123,14 @@ try{
     denied(fn()=>$p->deletePmNote($actors['manager'],$overrideId,$noteId),'Cannot delete a note through a different store');
     $p->deletePmNote($actors['admin'],$storeId,$noteId);
     verify(count($p->pmNotes($actors['manager'],$storeId))===0,'Admin can delete a PM note');
+
+    $live=DashboardReport::live($p,$actors['admin']);
+    verify((int)$live['metrics'][0]['value']===1&&(int)$live['total']===6,'Dashboard uses actual complete and created store counts');
+    verify(count($live['attention'])===2,'Dashboard flags missing dates and overdue unfinished stores');
+    verify(count($live['visits'])===3,'Dashboard visits include today and future unfinished stores');
+    verify(count($live['activity'])>0,'Dashboard reads recorded activity');
+    denied(fn()=>DashboardReport::live($p,$actors['worker']),'Contractor cannot access global dashboard data');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

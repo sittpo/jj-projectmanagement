@@ -117,3 +117,7 @@ Show all stores is stored per account in schema version 4's user_preferences tab
 ## Project Manager notes
 
 PMs and Admins can add store notes and control each note's inclusion in reports. The creation form defaults to inclusion; existing notes save the report checkbox automatically. Delete note requires confirmation before permanently removing the note. Author name and original creation time are stored with each note. Times are stored in UTC and displayed in Europe/Copenhagen time. Excluded notes are visible only to PMs/Admins on the store page and never rendered in report HTML. Included notes appear in the Print / Save as PDF report with author and date/time. Schema version 5 adds store_pm_notes, included in portable database exports.
+
+## Live dashboard
+
+The PM/Admin dashboard and CSV summary use DashboardReport::live. Stores live uses the same completion definition as the Stores list. Upcoming visits show the next six unfinished stores scheduled today or later. Needs attention links to Edit store for missing installation dates and overdue unfinished stores. Recent activity lists the latest eight recorded step changes, note additions, and store creations; it is not a history of every field edit. Workstream counts also use actual completion/sign-off data. Report preview opens in a new tab; PM notes sit below the checklist and above manual reminders.

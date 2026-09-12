@@ -54,7 +54,7 @@ function command(args) {
     await page.screenshot({path:path.join(root,'storage/dashboard-desktop.png'),fullPage:true});
     const csv = await context.request.get(base+'/index.php?page=report-export');
     assert.equal(csv.status(),200);
-    assert((await csv.text()).includes('Sample data'));
+    assert((await csv.text()).includes('Live data'));
     await page.getByRole('button',{name:'Switch to dark mode'}).click();
     await page.reload();
     assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');

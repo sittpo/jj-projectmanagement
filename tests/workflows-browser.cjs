@@ -238,6 +238,20 @@ module.exports=async({page,context,browser,base,password,root})=>{
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.screenshot({path:path.join(root,'storage/stores-filter-mobile.png'),fullPage:true});
 
+
+    await page.goto(route('dashboard'));
+    assert(!(await page.textContent('body')).includes('Sample data'));
+    assert((await page.locator('.attention-list').textContent()).includes('Filter Unscheduled'));
+    assert((await page.locator('.attention-list').textContent()).includes('Filter Overdue'));
+    for(const href of await page.locator('.attention-list a').evaluateAll(links=>links.map(a=>a.href)))assert(href.includes('page=store-edit'));
+    assert((await page.locator('.visits').textContent()).includes('Filter Today'));
+    await page.goto(route('store',storeId));
+    assert(await page.evaluate(()=>Boolean(document.querySelector('.step-list').compareDocumentPosition(document.querySelector('.pm-notes-panel')) & Node.DOCUMENT_POSITION_FOLLOWING)));
+    const popupEvent=page.waitForEvent('popup');
+    await page.getByRole('link',{name:'Report preview',exact:true}).click();
+    const preview=await popupEvent;await preview.waitForLoadState();
+    assert(preview.url().includes('page=store-report'));await preview.close();
+
     await page.goto(route('users'));
     for(const account of [worker,lead,outsider,pm])await account.ctx.close();
     console.log('PASS: workflow UI, company isolation, ordering, store creation, photo validation/authorization, PM sign-off, and responsive report preview.');
