@@ -84,6 +84,13 @@ final class ProjectRepository
         if(!$this->rows('SELECT id FROM store_pm_notes WHERE id=? AND store_id=?',[$noteId,$storeId]))throw new DomainException('Note not found for this store.');
         $this->execute('UPDATE store_pm_notes SET include_in_report=? WHERE id=? AND store_id=?',[(int)$include,$noteId,$storeId]);
     }
+    public function deletePmNote(array $actor,string $storeId,string $noteId): void
+    {
+        if(!Access::atLeast($actor,'pm'))throw new AccessDenied('Only a PM or Admin can delete Project Manager notes.');
+        Access::store($this->db,$actor,$storeId);
+        if(!$this->rows('SELECT id FROM store_pm_notes WHERE id=? AND store_id=?',[$noteId,$storeId]))throw new DomainException('Note not found for this store.');
+        $this->execute('DELETE FROM store_pm_notes WHERE id=? AND store_id=?',[$noteId,$storeId]);
+    }
     public function templates(): array { return $this->rows('SELECT * FROM task_templates ORDER BY ui_order,id'); }
     public function templateSave(array $input,?string $id): void
     {

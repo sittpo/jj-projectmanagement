@@ -157,7 +157,7 @@ module.exports=async({page,context,browser,base,password,root})=>{
     assert(await notes.locator('form').first().getByLabel('Include in PDF report').isChecked());
     await notes.getByLabel('New Project Manager note').fill('PM stakeholder note <safe>');
     await notes.getByRole('button',{name:'Add note',exact:true}).click();
-    await pm.tab.getByRole('status').waitFor();
+    await pm.tab.locator('.notice.success').waitFor();
     const saved=pm.tab.locator('.pm-note').first();
     assert((await saved.textContent()).includes('Project Manager'));
     assert(await saved.locator('time').getAttribute('datetime'));
@@ -165,8 +165,7 @@ module.exports=async({page,context,browser,base,password,root})=>{
     assert((await pm.tab.locator('.report-pm-notes').textContent()).includes('PM stakeholder note <safe>'));
     await pm.tab.goto(route('store',storeId));
     await pm.tab.locator('.pm-note').first().getByLabel('Include in PDF report').uncheck();
-    await pm.tab.locator('.pm-note').first().getByRole('button',{name:'Save report setting'}).click();
-    await pm.tab.getByRole('status').waitFor();
+    await pm.tab.locator('.pm-note-feedback').filter({hasText:'Saved'}).waitFor();
     assert((await pm.tab.locator('.pm-note').textContent()).includes('PM stakeholder note <safe>'));
     await pm.tab.goto(route('store-report',storeId));
     assert(!(await pm.tab.textContent('body')).includes('PM stakeholder note'));
@@ -174,6 +173,17 @@ module.exports=async({page,context,browser,base,password,root})=>{
     assert.equal(await worker.tab.locator('.pm-notes-panel').count(),0);
     assert.equal((await post(worker.ctx,'store',{action:'add-pm-note',pm_note:'Forbidden'},storeId)).status(),403);
 
+    await pm.tab.goto(route('store',storeId));
+    const deleteId=await pm.tab.locator('.pm-note-delete-form [name=note_id]').inputValue();
+    assert.equal((await post(worker.ctx,'store',{action:'delete-pm-note',note_id:deleteId,confirmed:'1'},storeId)).status(),403);
+    pm.tab.once('dialog',dialog=>dialog.dismiss());
+    await pm.tab.getByRole('button',{name:'Delete note',exact:true}).click();
+    assert.equal(await pm.tab.locator('.pm-note').count(),1);
+    pm.tab.once('dialog',dialog=>dialog.accept());
+    await pm.tab.getByRole('button',{name:'Delete note',exact:true}).click();
+    await pm.tab.locator('.pm-note').waitFor({state:'detached'});
+    await pm.tab.reload();
+    assert.equal(await pm.tab.locator('.pm-note').count(),0);
     const eventually=async(check)=>{
         const deadline=Date.now()+6000;
         while(Date.now()<deadline){if(await check())return;await new Promise(resolve=>setTimeout(resolve,100));}

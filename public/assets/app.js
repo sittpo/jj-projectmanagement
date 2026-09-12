@@ -190,3 +190,36 @@ document.querySelectorAll('.file-picker-input').forEach(input=>input.addEventLis
         }finally{checkbox.disabled=false;}
     });
 })();
+
+document.querySelectorAll('.pm-note').forEach(note=>{
+    const form=note.querySelector('.pm-note-report-form'),checkbox=form.querySelector('[type=checkbox]');
+    const deletion=note.querySelector('.pm-note-delete-form'),button=deletion.querySelector('button');
+    const feedback=note.querySelector('.pm-note-feedback');
+    button.disabled=false;
+    const send=async(data,source)=>{
+        const url=new URL(source.getAttribute('action'),location.href);url.searchParams.set('note_ajax','1');
+        const response=await fetch(url,{method:'POST',body:data});
+        if(!response.ok||response.redirected||!(await response.json()).saved)throw new Error('Note action failed');
+    };
+    form.addEventListener('submit',event=>event.preventDefault());
+    checkbox.addEventListener('change',async()=>{
+        const selected=checkbox.checked,data=new FormData(form);
+        checkbox.disabled=button.disabled=true;feedback.textContent='Saving…';
+        try{await send(data,form);feedback.textContent='Saved';}
+        catch{checkbox.checked=!selected;feedback.textContent='Could not save. Please try again or reload the page.';}
+        finally{checkbox.disabled=button.disabled=false;}
+    });
+    deletion.addEventListener('submit',async event=>{
+        event.preventDefault();
+        if(!window.confirm('Delete this Project Manager note permanently? This cannot be undone.'))return;
+        const data=new FormData(deletion);data.set('confirmed','1');
+        checkbox.disabled=button.disabled=true;feedback.textContent='Deleting…';
+        try{
+            await send(data,deletion);note.remove();
+            if(!document.querySelector('.pm-note')){
+                const empty=document.createElement('p');empty.className='field-help';empty.textContent='No Project Manager notes yet.';
+                document.querySelector('.pm-notes-panel .step-content').append(empty);
+            }
+        }catch{feedback.textContent='Could not delete. Please reload the page and try again.';checkbox.disabled=button.disabled=false;}
+    });
+});

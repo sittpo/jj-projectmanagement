@@ -1433,3 +1433,7 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .pm-note-report-form {display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:12px}
 .report-pm-notes {margin-top:24px}
 .report-pm-notes .report-note {overflow-wrap:anywhere}
+
+.pm-note-actions {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px}
+.pm-note-actions .pm-note-report-form {margin-top:0}
+.pm-note-delete {color:#d45d68;border-color:currentColor}

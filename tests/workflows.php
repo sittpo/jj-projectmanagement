@@ -119,6 +119,10 @@ try{
     $p->setPmNoteReport($actors['manager'],$storeId,$noteId,true);
     verify($p->pmNotes($actors['manager'],$storeId)[0]['created_at']===$note['created_at'],'Report setting changes preserve original note timestamp');
 
+    denied(fn()=>$p->deletePmNote($actors['worker'],$storeId,$noteId),'Contractor cannot delete PM notes');
+    denied(fn()=>$p->deletePmNote($actors['manager'],$overrideId,$noteId),'Cannot delete a note through a different store');
+    $p->deletePmNote($actors['admin'],$storeId,$noteId);
+    verify(count($p->pmNotes($actors['manager'],$storeId))===0,'Admin can delete a PM note');
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

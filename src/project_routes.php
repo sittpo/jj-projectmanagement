@@ -9,10 +9,15 @@ if(in_array($page,$projectPages,true)){
     if($page==='smtp'&&!Access::atLeast($user,'admin')){http_response_code(403);$page='forbidden';}
     if($page==='team'&&!Access::atLeast($user,'contractor_admin')){http_response_code(403);$page='forbidden';}
     try{
-        if($page==='store'&&$isPost&&in_array($_POST['action']??'',['add-pm-note','pm-note-report'],true)){
+        if($page==='store'&&$isPost&&in_array($_POST['action']??'',['add-pm-note','pm-note-report','delete-pm-note'],true)){
             if($_POST['action']==='add-pm-note')$project->addPmNote($user,$id??'',$_POST);
+            elseif($_POST['action']==='delete-pm-note'){
+                if(($_POST['confirmed']??'')!=='1')throw new DomainException('Confirm before deleting the note.');
+                $project->deletePmNote($user,$id??'',ProjectRepository::text($_POST,'note_id',36,true));
+            }
             else $project->setPmNoteReport($user,$id??'',ProjectRepository::text($_POST,'note_id',36,true),isset($_POST['include_in_report']));
-            $_SESSION['flash']=$_POST['action']==='add-pm-note'?'Project Manager note added.':'Note report setting saved.';
+            if(($_GET['note_ajax']??'')==='1'){header('Content-Type: application/json');echo json_encode(['saved'=>true]);exit;}
+            $_SESSION['flash']=match($_POST['action']){'add-pm-note'=>'Project Manager note added.','delete-pm-note'=>'Project Manager note deleted.',default=>'Note report setting saved.'};
             redirect('store',['id'=>$id]);
         }
         if($page==='stores'&&$isPost){
