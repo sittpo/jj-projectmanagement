@@ -149,3 +149,5 @@ Store code remains the unique business key; internal IDs and linked history are 
 ## Bulk store deletion
 
 PMs/Admins can enable Multi-edit on Stores, select displayed rows using the header checkbox, deselect exceptions, and choose Delete selected stores. Search/filter updates clear selections. Confirmation names the selected stores and explains permanent removal of tasks, evidence, notes, assignments, prerequisites and reminder history. The server validates every ID before deleting the whole selection in one transaction. Private photos are cleaned up afterward; files shared by remaining records are retained. Contractor roles cannot delete stores.
+
+Store import automatically detects comma, semicolon (common in Excel exports), or tab separators from the header. Quoted field separators are preserved.

@@ -49,14 +49,21 @@ final class StoreImport
         $this->admin($actor);
         if(strlen($csv)>2*1024*1024||!mb_check_encoding($csv,'UTF-8'))throw new DomainException('Use a UTF-8 CSV file up to 2 MB.');
         $stream=fopen('php://temp','r+');fwrite($stream,preg_replace('/^\\xEF\\xBB\\xBF/','',$csv));rewind($stream);
-        $header=fgetcsv($stream,0,',','"','');if(!$header)throw new DomainException('CSV is empty.');
-        $header=array_map('trim',$header);
-        if(count(array_unique($header))!==count($header)||array_diff($header,self::FIELDS)||array_diff(['code','name','post_code','city'],$header))throw new DomainException('Use the sample CSV headers. code, name, post_code and city are required.');
+        $header=null;$delimiter=',';
+        foreach([',',';', "\t"] as $candidate){
+            rewind($stream);$columns=fgetcsv($stream,0,$candidate,'"','');
+            if(!$columns)continue;
+            $columns=array_map(fn($value)=>trim((string)$value),$columns);
+            if(count(array_unique($columns))===count($columns)&&!array_diff($columns,self::FIELDS)&&!array_diff(['code','name','post_code','city'],$columns)){
+                $header=$columns;$delimiter=$candidate;break;
+            }
+        }
+        if(!$header){fclose($stream);throw new DomainException('Use CSV headers code, name, post_code and city. Comma, semicolon, and tab separators are supported.');}
         $draft=['changes'=>[],'ignored'=>0,'created'=>time(),'token'=>bin2hex(random_bytes(24))];
         $db=$this->project->db;$db->beginTransaction();
         try{
             $draft['snapshot']=$this->snapshot();$seen=[];$number=1;
-            while(($values=fgetcsv($stream,0,',','"',''))!==false){
+            while(($values=fgetcsv($stream,0,$delimiter,'"',''))!==false){
                 $number++;if($number>1001)throw new DomainException('Import up to 1,000 stores at a time.');
                 if($values===[null])continue;
                 if(count($values)!==count($header))throw new DomainException("Row $number: column count does not match the header.");

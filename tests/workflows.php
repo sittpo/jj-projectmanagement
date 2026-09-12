@@ -237,6 +237,10 @@ try{
     require_once dirname(__DIR__).'/src/StoreImport.php';
     $import=new StoreImport($p);
     $csv="code,name,post_code,city,address\nIMP-001,Import store,0012,Test City,12 Main Street\n";
+    $semicolon=$import->preview($actors['admin'],"\"code\";\"name\";\"post_code\";\"city\";\"address\"\n\"SEP-1\";\"Shop; Central\";\"0012\";\"København\";\"Main Street, 12\"\n");
+    verify($semicolon['changes'][0]['input']['name']==='Shop; Central'&&$semicolon['changes'][0]['input']['address']==='Main Street, 12','Semicolon CSV preserves quoted delimiters and Unicode');
+    $tab=$import->preview($actors['admin'],"code\tname\tpost_code\tcity\nTAB-1\tTab store\t0012\tCity\n");
+    verify(count($tab['changes'])===1,'Tab-separated store files supported');
     $draft=$import->preview($actors['admin'],$csv);
     verify(count($draft['changes'])===1&&!$p->rows("SELECT id FROM stores WHERE code='IMP-001'"),'Import preview makes no persistent changes');
     $import->apply($actors['admin'],$draft,$draft['token']);
