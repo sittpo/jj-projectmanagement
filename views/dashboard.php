@@ -20,9 +20,9 @@
 </section>
 <section class="panel attention"><div class="panel-heading"><div><h2><a href="<?= e(url('attention')) ?>">Needs attention <?= icon('arrow') ?></a></h2><p>A few things to keep moving</p></div><span class="count-badge"><?= count($report['attention']) ?></span></div>
 <div class="attention-list">
-<?php foreach($report['attention'] as $item): ?><a class="attention-item" href="<?= e(url('store-edit',['id'=>$item['id']])) ?>"><span class="attention-icon amber"><?= icon('calendar') ?></span><div><strong><?= e($item['name']) ?></strong><p><?= e($item['code']) ?> · <?= e($item['reason']) ?></p><span class="text-tag">Edit store</span></div></a><?php endforeach; ?>
+<?php foreach(array_slice($report['attention'],0,3) as $item): ?><a class="attention-item" href="<?= e(url('store-edit',['id'=>$item['id']])) ?>"><span class="attention-icon amber"><?= icon('calendar') ?></span><div><strong><?= e($item['name']) ?></strong><p><?= e($item['code']) ?> · <?= e($item['reason']) ?></p><span class="text-tag">Edit store</span></div></a><?php endforeach; ?>
 <?php if(!$report['attention']): ?><p class="empty-search">No stores need attention.</p><?php endif; ?>
-</div></section>
+</div><div class="panel-foot"><a href="<?= e(url('attention')) ?>">Show all <?= icon('arrow') ?></a></div></section>
 </div>
 <div class="detail-grid">
 <section class="panel visits"><div class="panel-heading"><div><h2>Upcoming store visits</h2><p>The next stops on the rollout</p></div><span class="pill"><?= icon('calendar') ?>Next 6 visits</span></div>

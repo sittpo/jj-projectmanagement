@@ -77,7 +77,7 @@ final class PrerequisiteRepository
     public static function issue(array $store,array $item,string $today): ?string
     {
         if($store['finished']||$item['status']['attention_days']===null)return null;
-        if(!$store['target_date'])return $item['name'].' · Installation date needed to assess readiness';
+        if(!$store['target_date'])return null;
         $days=ProjectRepository::workingDaysUntil($today,$store['target_date']);
         return $days<(int)$item['status']['attention_days']?$item['name'].' · '.$item['status']['name'].' · '.$days.' working days to installation':null;
     }

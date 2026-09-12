@@ -128,7 +128,7 @@ The Recent activity dashboard heading opens the full PM/Admin activity history w
 
 PMs/Admins can set Not ordered (default), Ordered, Shipped, or Delivered on the store and Edit store pages; changes save automatically. Schema version 6 stores this on the store row, so the state travels with database exports. Needs attention includes unfinished stores with fewer than 7 working days remaining when Not ordered, and fewer than 3 when not Delivered. Working days are Monday–Friday in Copenhagen time, excluding today and including installation day; holidays are not excluded. Today and overdue dates have zero remaining days. Exactly 7 or 3 days does not trigger the respective threshold. Multiple issues are combined in one store attention entry.
 
-Prerequisites groups store readiness items. Contractors and contractor admins see read-only UniFi states with green/red bullets and text labels using the same working-day thresholds. An unfinished, undelivered store without an installation date needs attention because readiness cannot be assessed. PMs/Admins retain the editable selector.
+Prerequisites groups store readiness items. Contractors and contractor admins see read-only UniFi states with green/red bullets and text labels using the same working-day thresholds. Prerequisite readiness alerts apply only to stores with an installation date. PMs/Admins retain the editable selector.
 
 Stores without an installation date are hidden from contractors and contractor admins, including Show all, search, direct store links, photos, and reports. Removing a date revokes that access; setting a date restores access under the normal company and assignment rules. PMs/Admins retain unscheduled store access.
 
@@ -151,3 +151,5 @@ Store code remains the unique business key; internal IDs and linked history are 
 PMs/Admins can enable Multi-edit on Stores, select displayed rows using the header checkbox, deselect exceptions, and choose Delete selected stores. Search/filter updates clear selections. Confirmation names the selected stores and explains permanent removal of tasks, evidence, notes, assignments, prerequisites and reminder history. The server validates every ID before deleting the whole selection in one transaction. Private photos are cleaned up afterward; files shared by remaining records are retained. Contractor roles cannot delete stores.
 
 Store import automatically detects comma, semicolon (common in Excel exports), or tab separators from the header. Quoted field separators are preserved.
+
+The dashboard attention card shows the first three entries with the full total in its header and a Show all link. Unscheduled stores flag only their missing installation date; prerequisite readiness rules start applying once a date is set.

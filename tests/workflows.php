@@ -280,6 +280,7 @@ try{
     verify((bool)$p->rows('SELECT id FROM stores WHERE id=?',[$sortIds[0]]),'Unselected stores retained');
     rmdir($private.'/uploads');
 
+    verify(PrerequisiteRepository::issue(['finished'=>0,'target_date'=>null],['name'=>'UniFi order','status'=>['attention_days'=>7]],$today)===null,'Unscheduled stores do not raise prerequisite readiness alerts');
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

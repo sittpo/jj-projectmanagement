@@ -281,6 +281,8 @@ module.exports=async({page,context,browser,base,password,root})=>{
 
     await page.goto(route('dashboard'));
     assert(!(await page.textContent('body')).includes('Sample data'));
+    assert((await page.locator('.attention .attention-item').count())<=3);
+    assert(await page.locator('.attention').getByRole('link',{name:'Show all',exact:false}).isVisible());
     await page.getByRole('link',{name:'Needs attention',exact:false}).click();
     await page.getByRole('heading',{name:'Needs attention',exact:true}).waitFor();
     await page.getByLabel('Stores per page').selectOption('50');
