@@ -1,0 +1,5 @@
+/.runtime/
+/.env
+/storage/*
+!/storage/.gitkeep
+/vendor/
