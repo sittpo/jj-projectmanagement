@@ -9,6 +9,12 @@ if(in_array($page,$projectPages,true)){
     if($page==='smtp'&&!Access::atLeast($user,'admin')){http_response_code(403);$page='forbidden';}
     if($page==='team'&&!Access::atLeast($user,'contractor_admin')){http_response_code(403);$page='forbidden';}
     try{
+        if($page==='store'&&$isPost&&in_array($_POST['action']??'',['add-pm-note','pm-note-report'],true)){
+            if($_POST['action']==='add-pm-note')$project->addPmNote($user,$id??'',$_POST);
+            else $project->setPmNoteReport($user,$id??'',ProjectRepository::text($_POST,'note_id',36,true),isset($_POST['include_in_report']));
+            $_SESSION['flash']=$_POST['action']==='add-pm-note'?'Project Manager note added.':'Note report setting saved.';
+            redirect('store',['id'=>$id]);
+        }
         if($page==='stores'&&$isPost){
             if(($_POST['action']??'')!=='store-preference')throw new DomainException('Invalid store preference action.');
             $project->saveStorePreference($user['id'],isset($_POST['show_all']));
@@ -75,6 +81,7 @@ if(in_array($page,$projectPages,true)){
     }
     if(in_array($page,['store','store-report'],true)){
         if(!isset($store)){http_response_code(404);exit('Store not found.');}
+        $pmNotes=($page==='store-report'||Access::atLeast($user,'pm'))?$project->pmNotes($user,$store['id'],$page==='store-report'):[];
         $steps=$subtasks->list($store['id'],$page==='store-report'?'report_order':'ui_order');
         $assigned=$project->rows('SELECT u.display_name FROM store_assignments a JOIN users u ON u.id=a.user_id WHERE a.store_id=?',[$store['id']]);
         $logs=$project->rows("SELECT *, 'Automatic' AS source, NULL AS actor_name FROM reminder_log WHERE store_id=?",[$store['id']]);

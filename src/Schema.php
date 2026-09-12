@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 final class Schema
 {
-    public const VERSION = 4;
+    public const VERSION = 5;
     // Parent-first order is also used by portable data transfers.
-    public const TABLES = ['companies','users','project_settings','task_templates','stores','store_assignments','tasks','task_photos','subtasks','subtask_photos','task_audit','reminder_log','manual_reminder_log','user_preferences'];
+    public const TABLES = ['companies','users','project_settings','task_templates','stores','store_assignments','tasks','task_photos','subtasks','subtask_photos','task_audit','reminder_log','manual_reminder_log','user_preferences','store_pm_notes'];
 
     public static function migrate(PDO $db): void
     {
@@ -49,7 +49,9 @@ final class Schema
         require_once __DIR__.'/Migration3.php';
         if($current<3)Migration3::run($db);
         require_once __DIR__.'/Migration4.php';
-        Migration4::run($db);
+        if($current<4)Migration4::run($db);
+        require_once __DIR__.'/Migration5.php';
+        Migration5::run($db);
     }
 
     public static function id(): string

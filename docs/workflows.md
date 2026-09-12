@@ -113,3 +113,7 @@ Schema version 3 adds a separate manual reminder log; automatic reminder history
 Store search updates after 750 ms and matches names, store codes, and internal IDs. Results remain scoped to the signed-in user's store access. Unfinished stores appear by installation date (oldest first), with undated stores last. Checklist stores remain unfinished until every step is complete and signed off; legacy stores without checklists use task completion. Due-today rows are teal and overdue rows red, based on Europe/Copenhagen dates. Completed stores are not highlighted as overdue.
 
 Show all stores is stored per account in schema version 4's user_preferences table and included in data exports. It applies across sessions and devices when the Stores page loads or refreshes. Search text is retained in the page URL, independently of the saved preference.
+
+## Project Manager notes
+
+PMs and Admins can add store notes and control each note's inclusion in reports. The creation form defaults to inclusion; existing notes have a checkbox and Save report setting button. Author name and original creation time are stored with each note. Times are stored in UTC and displayed in Europe/Copenhagen time. Excluded notes are visible only to PMs/Admins on the store page and never rendered in report HTML. Included notes appear in the Print / Save as PDF report with author and date/time. Schema version 5 adds store_pm_notes, included in portable database exports.

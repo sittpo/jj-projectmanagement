@@ -104,6 +104,21 @@ try{
     }
     verify(array_column($p->storeListing($actors['admin'],false,'SORT-'),'id')===$sortIds,'Installation order includes overdue first and unscheduled last');
 
+
+    $noteId=$p->addPmNote($actors['manager'],$storeId,['pm_note'=>'Stakeholder update','include_in_report'=>1]);
+    $note=$p->pmNotes($actors['admin'],$storeId)[0];
+    verify($note['author_name']==='Manager'&&preg_match('/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/',$note['created_at'])===1,'PM note records author and creation timestamp');
+    verify(count($p->pmNotes($actors['worker'],$storeId,true))===1,'Included PM notes are available in authorized reports');
+    $p->setPmNoteReport($actors['admin'],$storeId,$noteId,false);
+    verify(count($p->pmNotes($actors['admin'],$storeId))===1&&count($p->pmNotes($actors['worker'],$storeId,true))===0,'Excluded note remains stored and is omitted from reports');
+    denied(fn()=>$p->addPmNote($actors['lead'],$storeId,['pm_note'=>'Not allowed']),'Contractor admin cannot add PM notes');
+    denied(fn()=>$p->setPmNoteReport($actors['worker'],$storeId,$noteId,true),'Contractor cannot change note report inclusion');
+    denied(fn()=>$p->pmNotes($actors['worker'],$storeId),'Contractor cannot read private PM notes');
+    denied(fn()=>$p->pmNotes($actors['outsider'],$storeId,true),'Other company cannot read note reports');
+    denied(fn()=>$p->setPmNoteReport($actors['manager'],$overrideId,$noteId,true),'Cannot change a note through a different store');
+    $p->setPmNoteReport($actors['manager'],$storeId,$noteId,true);
+    verify($p->pmNotes($actors['manager'],$storeId)[0]['created_at']===$note['created_at'],'Report setting changes preserve original note timestamp');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

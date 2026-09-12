@@ -151,6 +151,29 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await worker.tab.locator('#step-'+stepId).getByRole('button',{name:'Save step',exact:true}).click();
     assert((await worker.tab.textContent('body')).includes('valid JPEG, PNG, or WebP'));
 
+
+    await pm.tab.goto(route('store',storeId));
+    const notes=pm.tab.locator('.pm-notes-panel');
+    assert(await notes.locator('form').first().getByLabel('Include in PDF report').isChecked());
+    await notes.getByLabel('New Project Manager note').fill('PM stakeholder note <safe>');
+    await notes.getByRole('button',{name:'Add note',exact:true}).click();
+    await pm.tab.getByRole('status').waitFor();
+    const saved=pm.tab.locator('.pm-note').first();
+    assert((await saved.textContent()).includes('Project Manager'));
+    assert(await saved.locator('time').getAttribute('datetime'));
+    await pm.tab.goto(route('store-report',storeId));
+    assert((await pm.tab.locator('.report-pm-notes').textContent()).includes('PM stakeholder note <safe>'));
+    await pm.tab.goto(route('store',storeId));
+    await pm.tab.locator('.pm-note').first().getByLabel('Include in PDF report').uncheck();
+    await pm.tab.locator('.pm-note').first().getByRole('button',{name:'Save report setting'}).click();
+    await pm.tab.getByRole('status').waitFor();
+    assert((await pm.tab.locator('.pm-note').textContent()).includes('PM stakeholder note <safe>'));
+    await pm.tab.goto(route('store-report',storeId));
+    assert(!(await pm.tab.textContent('body')).includes('PM stakeholder note'));
+    await worker.tab.goto(route('store',storeId));
+    assert.equal(await worker.tab.locator('.pm-notes-panel').count(),0);
+    assert.equal((await post(worker.ctx,'store',{action:'add-pm-note',pm_note:'Forbidden'},storeId)).status(),403);
+
     const eventually=async(check)=>{
         const deadline=Date.now()+6000;
         while(Date.now()<deadline){if(await check())return;await new Promise(resolve=>setTimeout(resolve,100));}

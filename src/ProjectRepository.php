@@ -62,6 +62,28 @@ final class ProjectRepository
         $sql='SELECT * FROM ('.$sql.') listing'.($showAll?'':' WHERE finished=0').' ORDER BY CASE WHEN target_date IS NULL THEN 1 ELSE 0 END,target_date,name,id';
         return $this->rows($sql,$args);
     }
+    public function pmNotes(array $actor,string $storeId,bool $reportOnly=false): array
+    {
+        Access::store($this->db,$actor,$storeId);
+        if(!$reportOnly&&!Access::atLeast($actor,'pm'))throw new AccessDenied('Only a PM or Admin can manage Project Manager notes.');
+        return $this->rows('SELECT * FROM store_pm_notes WHERE store_id=?'.($reportOnly?' AND include_in_report=1':'').' ORDER BY created_at,id',[$storeId]);
+    }
+    public function addPmNote(array $actor,string $storeId,array $input): string
+    {
+        if(!Access::atLeast($actor,'pm'))throw new AccessDenied('Only a PM or Admin can add Project Manager notes.');
+        Access::store($this->db,$actor,$storeId);
+        $note=self::text($input,'pm_note',20000,true);$id=Schema::id();
+        $this->execute('INSERT INTO store_pm_notes(id,store_id,author_id,author_name,note,created_at,include_in_report) VALUES(?,?,?,?,?,?,?)',
+            [$id,$storeId,$actor['id'],$actor['display_name'],$note,gmdate('Y-m-d\TH:i:s\Z'),isset($input['include_in_report'])?1:0]);
+        return $id;
+    }
+    public function setPmNoteReport(array $actor,string $storeId,string $noteId,bool $include): void
+    {
+        if(!Access::atLeast($actor,'pm'))throw new AccessDenied('Only a PM or Admin can manage Project Manager notes.');
+        Access::store($this->db,$actor,$storeId);
+        if(!$this->rows('SELECT id FROM store_pm_notes WHERE id=? AND store_id=?',[$noteId,$storeId]))throw new DomainException('Note not found for this store.');
+        $this->execute('UPDATE store_pm_notes SET include_in_report=? WHERE id=? AND store_id=?',[(int)$include,$noteId,$storeId]);
+    }
     public function templates(): array { return $this->rows('SELECT * FROM task_templates ORDER BY ui_order,id'); }
     public function templateSave(array $input,?string $id): void
     {

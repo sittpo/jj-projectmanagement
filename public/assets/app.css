@@ -1427,3 +1427,9 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .stores-panel tr.store-overdue td {background:#8f2731;color:#fff;border-color:#a94b54}
 .stores-panel tr.store-today td small,.stores-panel tr.store-overdue td small,.stores-panel tr.store-today .store-name,.stores-panel tr.store-overdue .store-name {color:#fff}
 @media(max-width:600px){.stores-toolbar{align-items:stretch;gap:16px;padding:16px}.store-search-form{flex-basis:100%}.stores-help,.stores-feedback:not(.sr-only){padding-left:16px;padding-right:16px}.stores-panel .panel-heading{align-items:start;flex-direction:column;gap:8px}}
+
+.pm-notes-panel {margin-bottom:24px}
+.pm-note {border-top:1px solid var(--line);padding-top:18px;margin-top:18px}
+.pm-note-report-form {display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:12px}
+.report-pm-notes {margin-top:24px}
+.report-pm-notes .report-note {overflow-wrap:anywhere}
