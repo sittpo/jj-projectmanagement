@@ -63,6 +63,22 @@ try{
     $service->run(true,static function(){throw new RuntimeException('Simulated SMTP failure');});
     verify(count($p->rows("SELECT * FROM reminder_log WHERE status='failed'"))===1,'Failed send is logged');
     verify(count($service->due($today))===0,'Failed attempts are not blindly retried');
+
+    $manualCalls=[];$manualTransport=function($to,$subject,$body)use(&$manualCalls){$manualCalls[]=$to;};
+    $requestId=bin2hex(random_bytes(16));
+    denied(fn()=>$service->manual($actors['lead'],$storeId,$requestId,$manualTransport),'Contractor admin cannot manually send reminders');
+    $manual=$service->manual($actors['manager'],$storeId,$requestId,$manualTransport);
+    verify(count($manual)===2&&count($manualCalls)===2,'PM can immediately send owner/contact reminders');
+    verify(count($service->manual($actors['manager'],$storeId,$requestId,$manualTransport))===0,'Duplicate manual submission does not send again');
+    verify(count($p->rows('SELECT * FROM manual_reminder_log WHERE actor_name=?',['Manager']))===2,'Manual log records sender and recipients');
+    $service->manual($actors['admin'],$storeId,bin2hex(random_bytes(16)),$manualTransport);
+    verify(count($manualCalls)===4,'A deliberate new manual request can resend');
+    verify(count($p->rows('SELECT * FROM reminder_log'))===3,'Manual sends preserve automatic reminder history');
+    $service->manual($actors['admin'],$storeId,bin2hex(random_bytes(16)),static function(){throw new RuntimeException('Simulated failure');});
+    verify(count($p->rows("SELECT * FROM manual_reminder_log WHERE status='failed'"))===2,'Manual send failures are logged');
+    denied(fn()=>$service->test('invalid-address',$manualTransport),'SMTP test rejects invalid recipients');
+    $testCalls=[];$service->test('test@example.test',function($to,$subject,$body)use(&$testCalls){$testCalls[]=[$to,$subject];});
+    verify($testCalls[0][0]==='test@example.test'&&str_contains($testCalls[0][1],'SMTP test'),'SMTP test targets the specified recipient');
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

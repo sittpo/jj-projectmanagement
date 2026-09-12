@@ -89,3 +89,49 @@ document.querySelectorAll('.file-picker-input').forEach(input=>input.addEventLis
     const text=input.closest('.photo-picker').querySelector('.selected-files');
     text.textContent=input.files.length?Array.from(input.files).map(file=>file.name).join(', '):'No photos selected';
 }));
+
+(() => {
+    document.querySelectorAll('[data-email-submit]').forEach(form=>form.addEventListener('submit',()=>{
+        const button=form.querySelector('button');
+        button.disabled=true;button.textContent='Sending…';
+    }));
+    const dialog=document.querySelector('.photo-lightbox');
+    const links=Array.from(document.querySelectorAll('[data-photo-lightbox]'));
+    if(!dialog||!links.length)return;
+    const image=dialog.querySelector('.lightbox-image');
+    const previous=dialog.querySelector('.lightbox-prev');
+    const next=dialog.querySelector('.lightbox-next');
+    const error=dialog.querySelector('.lightbox-error');
+    let index=0,opener=null;
+    const show=position=>{
+        index=(position+links.length)%links.length;
+        const link=links[index],name=link.querySelector('img')?.alt||'Store photo';
+        error.hidden=true;
+        image.alt=name;image.src=link.href;
+        dialog.querySelector('.lightbox-filename').textContent=name;
+        dialog.querySelector('.lightbox-count').textContent=(index+1)+' of '+links.length;
+        previous.disabled=next.disabled=links.length<2;
+    };
+    links.forEach((link,position)=>link.addEventListener('click',event=>{
+        event.preventDefault();opener=link;show(position);
+        dialog.showModal();document.body.classList.add('lightbox-open');
+    }));
+    dialog.querySelector('.lightbox-close').addEventListener('click',()=>dialog.close());
+    previous.addEventListener('click',()=>show(index-1));
+    next.addEventListener('click',()=>show(index+1));
+    dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+    dialog.addEventListener('keydown',event=>{
+        if(event.key==='ArrowLeft'){event.preventDefault();show(index-1);}
+        if(event.key==='ArrowRight'){event.preventDefault();show(index+1);}
+    });
+    dialog.addEventListener('close',()=>{document.body.classList.remove('lightbox-open');image.removeAttribute('src');opener?.focus();});
+    image.addEventListener('error',()=>{if(dialog.open)error.hidden=false;});
+    let touchX=null;
+    image.addEventListener('touchstart',event=>{touchX=event.touches.length===1?event.touches[0].clientX:null;},{passive:true});
+    image.addEventListener('touchend',event=>{
+        if(touchX===null)return;
+        const delta=event.changedTouches[0].clientX-touchX;
+        if(Math.abs(delta)>60)show(index+(delta<0?1:-1));
+        touchX=null;
+    },{passive:true});
+})();

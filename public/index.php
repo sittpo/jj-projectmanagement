@@ -40,7 +40,8 @@ if (in_array($page, ['users','user-edit'], true) && $user['role'] !== 'admin') {
 if ($page === 'report-export' && !in_array($user['role'], ['admin','pm'], true)) {
     http_response_code(403); $page = 'forbidden';
 }
-$error = null;
+$error = $_SESSION['flash_error']??null;
+unset($_SESSION['flash_error']);
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 if ($page === 'login' && $isPost) {

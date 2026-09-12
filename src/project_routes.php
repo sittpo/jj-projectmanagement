@@ -3,7 +3,7 @@ declare(strict_types=1);
 $projectPages=['stores','store','store-edit','companies','company-edit','templates','template-edit','settings','smtp','photo','step-update','store-report','team'];
 if(in_array($page,$projectPages,true)){
     $subtasks=new SubtaskRepository($db,getenv('UPLOAD_ROOT')?:dirname(__DIR__).'/storage/uploads');
-    $smtpSettings=new SmtpSettings(dirname(__DIR__).'/storage/config');
+    $smtpSettings=new SmtpSettings(getenv('SMTP_CONFIG_DIR')?:dirname(__DIR__).'/storage/config');
     $id=is_string($_GET['id']??null)?$_GET['id']:null;
     if(in_array($page,['store-edit','companies','company-edit','templates','template-edit','settings'],true)&&!Access::atLeast($user,'pm')){http_response_code(403);$page='forbidden';}
     if($page==='smtp'&&!Access::atLeast($user,'admin')){http_response_code(403);$page='forbidden';}
@@ -20,6 +20,14 @@ if(in_array($page,$projectPages,true)){
             $storeId=$subtasks->update($user,$id??'',$_POST,$_FILES['photos']??[]);
             $_SESSION['flash']='Step updated.';redirect('store',['id'=>$storeId]);
         }
+        if($page==='store'&&$isPost&&($_POST['action']??'')==='send-reminder'){
+            $service=new ReminderService($project,$smtpSettings);
+            $results=$service->manual($user,$id??'',ProjectRepository::text($_POST,'request_id',36,true));
+            $sent=count(array_filter($results,fn($result)=>$result['status']==='sent'));
+            $failed=count($results)-$sent;
+            $_SESSION[$failed?'flash_error':'flash']=$results?"Manual reminder: $sent accepted by SMTP, $failed failed. See the reminder log.":'This reminder request was already processed. No additional email was sent.';
+            redirect('store',['id'=>$id]);
+        }
         if($page==='store-edit'&&$isPost){$saved=$project->storeSave($_POST,$id);$_SESSION['flash']=$id?'Store updated.':'Store created with the current task templates.';redirect('store',['id'=>$saved]);}
         if($page==='company-edit'&&$isPost){$project->companySave($_POST,$id);$_SESSION['flash']='Company saved.';redirect('companies');}
         if($page==='template-edit'&&$isPost){$project->templateSave($_POST,$id);$_SESSION['flash']='Template saved. Changes apply to newly created stores.';redirect('templates');}
@@ -33,7 +41,13 @@ if(in_array($page,$projectPages,true)){
             $project->execute("UPDATE project_settings SET setting_value=? WHERE setting_key='reminder_days'",[(string)$days]);
             $_SESSION['flash']='Reminder schedule updated.';redirect('settings');
         }
-        if($page==='smtp'&&$isPost){$smtpSettings->save($_POST);$_SESSION['flash']='SMTP settings saved. No email was sent.';redirect('smtp');}
+        if($page==='smtp'&&$isPost){
+            if(($_POST['action']??'save')==='test'){
+                (new ReminderService($project,$smtpSettings))->test(ProjectRepository::text($_POST,'test_recipient',254,true));
+                $_SESSION['flash']='Test email accepted by SMTP. Check the recipient inbox or SMTP2Go activity.';
+            }else{$smtpSettings->save($_POST);$_SESSION['flash']='SMTP settings saved. No email was sent.';}
+            redirect('smtp');
+        }
     }catch(AccessDenied $exception){http_response_code(403);$page='forbidden';
     }catch(DomainException $exception){
         if(!$isPost){http_response_code(403);$page='forbidden';}
@@ -47,7 +61,9 @@ if(in_array($page,$projectPages,true)){
         if(!isset($store)){http_response_code(404);exit('Store not found.');}
         $steps=$subtasks->list($store['id'],$page==='store-report'?'report_order':'ui_order');
         $assigned=$project->rows('SELECT u.display_name FROM store_assignments a JOIN users u ON u.id=a.user_id WHERE a.store_id=?',[$store['id']]);
-        $logs=$project->rows('SELECT * FROM reminder_log WHERE store_id=? ORDER BY created_at DESC',[$store['id']]);
+        $logs=$project->rows("SELECT *, 'Automatic' AS source, NULL AS actor_name FROM reminder_log WHERE store_id=?",[$store['id']]);
+        $logs=array_merge($logs,$project->rows("SELECT *, 'Manual' AS source FROM manual_reminder_log WHERE store_id=?",[$store['id']]));
+        usort($logs,fn($a,$b)=>strcmp($b['created_at'],$a['created_at'])?:strcmp($b['id'],$a['id']));
         $audits=$project->rows('SELECT a.*,s.title FROM task_audit a JOIN subtasks s ON s.id=a.subtask_id JOIN tasks t ON t.id=s.task_id WHERE t.store_id=? ORDER BY a.created_at DESC,a.id',[$store['id']]);
     }
     if($page==='store-edit'){

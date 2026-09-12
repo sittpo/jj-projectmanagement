@@ -13,7 +13,7 @@ const maria = process.env.TEST_MARIADB === '1' || (process.env.TEST_MARIADB !== 
 const database = maria ? 'jjtest_' + suffix : path.join(root, 'storage', 'browser-test-' + suffix + '.sqlite');
 const password = crypto.randomBytes(15).toString('hex');
 const uploadRoot=path.join(root,'storage','browser-uploads-'+suffix);
-const env = { ...process.env, UPLOAD_ROOT:uploadRoot, APP_ENV: 'dev', DB_CONNECTION: maria ? 'mysql' : 'sqlite', DB_DATABASE: database, DEV_ADMIN_PASSWORD: password };
+const env = { ...process.env, UPLOAD_ROOT:uploadRoot, SMTP_CONFIG_DIR:path.join(root,'storage','browser-smtp-'+suffix), APP_ENV: 'dev', DB_CONNECTION: maria ? 'mysql' : 'sqlite', DB_DATABASE: database, DEV_ADMIN_PASSWORD: password };
 let testDatabaseCreated = false;
 let server, browser;
 let serverError = '';

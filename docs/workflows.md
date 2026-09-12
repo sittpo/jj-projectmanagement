@@ -95,3 +95,15 @@ node tests/browser.cjs
 ```
 
 Tests use disposable MariaDB databases and isolated upload/config directories. They cover company isolation, role guards, template snapshots, independent ordering, file validation, photo access, sign-off/reopen, stale forms, reminder overrides, duplicate prevention, encrypted secrets, and database transfer compatibility. Reminder tests use an injected fake transport; live SMTP2Go delivery remains to be verified after credentials are supplied.
+
+## Manual reminder and SMTP test actions
+
+PMs and Admins can use **Send reminder now** on the store page. It sends to the saved owner/contact addresses immediately, ignoring automatic reminder dates and enable switches. An installation date, recipient address, and saved SMTP credentials are required. It does not cancel or change the automatic reminder.
+
+Each manual send records its recipients, the acting user, attempt time, SMTP acceptance time, and result in the store log. Duplicate submission of the same request does not send twice; deliberately clicking again from a freshly loaded store creates another attempt. Failed or ambiguous attempts should be checked in SMTP2Go before resending.
+
+Admins can enter a **Test recipient** and click **Test SMTP** on the SMTP settings page. It sends one test message using saved settings, even with automatic reminders disabled. Save edited credentials/settings before testing. Test messages do not create store-reminder log entries.
+
+Photo thumbnails open in an in-page lightbox with previous/next buttons, arrow keys, Escape-to-close, mobile swipe support, and focus restoration. Photo access remains protected by store permissions.
+
+Schema version 3 adds a separate manual reminder log; automatic reminder history and duplicate prevention remain unchanged. Both log tables are included in portable data exports.
