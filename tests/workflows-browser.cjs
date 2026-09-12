@@ -65,6 +65,7 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await page.getByRole('button',{name:'Save store',exact:true}).click();
     await page.getByRole('heading',{name:'Harbour Point',exact:true}).waitFor();
     const storeId=new URL(page.url()).searchParams.get('id');
+    await page.locator('.step-card').nth(4).waitFor();
     assert.equal(await page.locator('.step-card').count(),5);
     assert((await page.textContent('body')).includes('2026-10-15'));
     const worker=await login('installer2'),lead=await login('lead2'),outsider=await login('other2'),pm=await login('manager2');
@@ -376,6 +377,11 @@ module.exports=async({page,context,browser,base,password,root})=>{
 
 
     await page.goto(route('store-import'));
+    for(const width of [390,1440,3827]){
+        await page.setViewportSize({width,height:1000});
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'Import page overflows at '+width);
+    }
+    await page.setViewportSize({width:1440,height:1000});
     const sample=await context.request.get(route('store-import')+'&sample=1');
     assert((await sample.text()).startsWith('code,name,post_code,city,address'));
     const csv=Buffer.from('code,name,post_code,city,address\nCSV-101,CSV Preview Store,0012,Import City,10 Test Road\n');

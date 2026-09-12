@@ -1396,7 +1396,7 @@ input[type=file]{font-size:11px;max-width:100%}
 .brand,.sidebar-bottom{flex-shrink:0}
 .report-page{--teal:#117b80;--surface:#fff;--ink:#19343d;--muted:#61767a;--line:#e2eaed;color-scheme:light}
 
-input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1px;padding:0;border:0}
+input[type=file].sr-only{width:1px;max-width:1px;min-width:0;height:1px;padding:0;border:0}
 
 .manual-reminder-panel,.smtp-test-panel{margin-top:24px}
 .lightbox-open{overflow:hidden}
@@ -1493,3 +1493,5 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .store-delete-selected {color:#d45d68;border-color:currentColor}
 .stores-panel .store-select-cell {width:44px;min-width:44px}
 .store-select,.store-select-all {width:18px;height:18px;accent-color:var(--teal)}
+
+.csv-selected {overflow-wrap:anywhere;min-width:0}
