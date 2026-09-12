@@ -100,9 +100,12 @@ module.exports=async({page,context,browser,base,password,root})=>{
         return c.toDataURL('image/png').split(',')[1];
     }), 'base64');
     await card.locator('input[type=file]').setInputFiles([{name:'rack-documentation.png',mimeType:'image/png',buffer:photo},{name:'rack-side.png',mimeType:'image/png',buffer:photo}]);
+    assert(await card.locator('.photo-save-reminder').isVisible());
+    assert((await card.locator('.photo-save-reminder').textContent()).includes('Save step'));
     await card.getByRole('button',{name:'Save step',exact:true}).click();
     await worker.tab.getByRole('status').waitFor();
     assert.equal(await worker.tab.locator('.photo-grid img').count(),2);
+    assert.equal(await card.locator('.photo-save-reminder').isVisible(),false);
     const photoUrl=await worker.tab.locator('.photo-grid img').first().getAttribute('src');
     assert.equal((await outsider.ctx.request.get(base+photoUrl)).status(),403);
     assert.equal((await worker.ctx.request.get(base+photoUrl)).headers()['content-type'],'image/png');

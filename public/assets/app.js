@@ -87,6 +87,9 @@
 
 document.querySelectorAll('.file-picker-input').forEach(input=>input.addEventListener('change',()=>{
     const text=input.closest('.photo-picker').querySelector('.selected-files');
+    const pending=input.files.length>0;
+    input.form.querySelector('.photo-save-reminder').hidden=!pending;
+    input.form.classList.toggle('photos-pending',pending);
     text.textContent=input.files.length?Array.from(input.files).map(file=>file.name).join(', '):'No photos selected';
 }));
 
