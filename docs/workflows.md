@@ -127,3 +127,5 @@ The Recent activity dashboard heading opens the full PM/Admin activity history w
 ## UniFi orders
 
 PMs/Admins can set Not ordered (default), Ordered, Shipped, or Delivered on the store and Edit store pages; changes save automatically. Schema version 6 stores this on the store row, so the state travels with database exports. Needs attention includes unfinished stores with fewer than 7 working days remaining when Not ordered, and fewer than 3 when not Delivered. Working days are Monday–Friday in Copenhagen time, excluding today and including installation day; holidays are not excluded. Today and overdue dates have zero remaining days. Exactly 7 or 3 days does not trigger the respective threshold. Multiple issues are combined in one store attention entry.
+
+Prerequisites groups store readiness items. Contractors and contractor admins see read-only UniFi states with green/red bullets and text labels using the same working-day thresholds. An unfinished, undelivered store without an installation date needs attention because readiness cannot be assessed. PMs/Admins retain the editable selector.

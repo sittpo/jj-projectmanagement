@@ -1446,3 +1446,14 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .unifi-panel {display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:20px;margin:20px 0}
 .unifi-order-form {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .unifi-order-form select {padding:10px 14px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);min-width:160px}
+
+.prerequisites-panel {margin:20px 0}
+.prerequisites-list {list-style:none;margin:0;padding:0 20px}
+.prerequisite-item {padding:18px 0}
+.prerequisite-item + .prerequisite-item {border-top:1px solid var(--line)}
+.prerequisite-status {display:flex;gap:12px;align-items:flex-start}
+.prerequisite-status p {margin-top:5px}
+.prerequisite-dot {width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.prerequisite-dot.good-to-go {background:var(--green)}
+.prerequisite-dot.needs-attention {background:#e45d68}
+.step-list + .pm-notes-panel {margin-top:24px}

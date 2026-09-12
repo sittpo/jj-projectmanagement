@@ -275,6 +275,26 @@ module.exports=async({page,context,browser,base,password,root})=>{
     assert.equal((await post(worker.ctx,'store',{action:'unifi-order',unifi_order:'delivered'},storeId)).status(),403);
     await worker.tab.goto(route('store',storeId));
     assert.equal(await worker.tab.locator('.unifi-order-form').count(),0);
+    await worker.tab.getByRole('heading',{name:'Prerequisites',exact:true}).waitFor();
+    assert.equal(await worker.tab.locator('.prerequisite-dot.good-to-go').count(),1);
+    await pm.tab.goto(route('store-edit',storeId));
+    await pm.tab.getByLabel('Installation date',{exact:true}).fill(today);
+    await pm.tab.getByLabel('Reminder date override',{exact:true}).fill('');
+    await pm.tab.getByRole('button',{name:'Save store',exact:true}).click();
+    await worker.tab.reload();
+    assert.equal(await worker.tab.locator('.prerequisite-dot.needs-attention').count(),1);
+    assert((await worker.tab.locator('.prerequisites-panel').textContent()).includes('Needs attention'));
+    await pm.tab.goto(route('store',storeId));
+    await pm.tab.getByLabel('UniFi order',{exact:true}).selectOption('delivered');
+    await pm.tab.locator('.unifi-feedback').filter({hasText:'Saved'}).waitFor();
+    await worker.tab.reload();
+    assert.equal(await worker.tab.locator('.prerequisite-dot.good-to-go').count(),1);
+    assert(await pm.tab.evaluate(()=>{
+        const steps=document.querySelector('.step-list').getBoundingClientRect();
+        const notes=document.querySelector('.pm-notes-panel').getBoundingClientRect();
+        return notes.top-steps.bottom>=23;
+    }));
+
 
     await page.goto(route('users'));
     for(const account of [worker,lead,outsider,pm])await account.ctx.close();
