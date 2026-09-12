@@ -31,10 +31,11 @@ final class SubtaskRepository
                     $q=$this->db->prepare('UPDATE subtasks SET signed_by=NULL,signed_name=NULL,signed_at=NULL,version=version+1 WHERE id=?');$q->execute([$id]);
                 }
                 $details=json_encode(['note'=>$row['note'],'complete'=>(bool)$row['complete']],JSON_THROW_ON_ERROR);
-            }elseif($action==='save'){
+            }elseif(in_array($action,['save','completion'],true)){
                 if($row['signed_at'])throw new DomainException('This step is signed off. A PM or Admin must reopen it before changes.');
-                $note=ProjectRepository::text($input,'note',20000);$complete=isset($input['complete'])?1:0;
-                $uploads=$this->validateUploads($files);
+                $completionOnly=$action==='completion';
+                $note=$completionOnly?$row['note']:ProjectRepository::text($input,'note',20000);$complete=isset($input['complete'])?1:0;
+                $uploads=$completionOnly?[]:$this->validateUploads($files);
                 if($uploads && !is_dir($this->uploadRoot) && !mkdir($this->uploadRoot,0700,true))throw new RuntimeException('Cannot create upload storage.');
                 foreach($uploads as $upload){
                     $photoId=Schema::id();$key=$photoId.'.'.$upload['extension'];$destination=$this->uploadRoot.'/'.$key;
@@ -46,7 +47,8 @@ final class SubtaskRepository
                 $completedBy=$complete?($row['completed_by']?:$user['id']):null;$completedAt=$complete?($row['completed_at']?:$now):null;
                 $q=$this->db->prepare('UPDATE subtasks SET note=?,complete=?,completed_by=?,completed_at=?,version=version+1 WHERE id=?');
                 $q->execute([$note,$complete,$completedBy,$completedAt,$id]);
-                $details=json_encode(['note'=>$note,'complete'=>(bool)$complete,'photos_added'=>count($uploads)],JSON_THROW_ON_ERROR);
+                $details=json_encode(['note'=>$note,'complete'=>(bool)$complete,'photos_added'=>count($uploads),'completion_only'=>$completionOnly],JSON_THROW_ON_ERROR);
+                $action='save';
             }else throw new DomainException('Invalid step action.');
             $q=$this->db->prepare('INSERT INTO task_audit(id,subtask_id,actor_id,actor_name,action,details,created_at) VALUES (?,?,?,?,?,?,?)');
             $q->execute([Schema::id(),$id,$user['id'],$user['display_name'],$action,$details,$now]);

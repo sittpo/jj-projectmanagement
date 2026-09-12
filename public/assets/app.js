@@ -240,3 +240,30 @@ document.querySelectorAll('.unifi-order-form').forEach(form=>{
         finally{select.disabled=false;}
     });
 });
+
+document.querySelectorAll('.step-form input[name=complete]').forEach(checkbox=>{
+    const form=checkbox.form,card=form.closest('.step-card'),feedback=form.querySelector('.completion-feedback');
+    let busy=false;
+    form.addEventListener('submit',event=>{if(busy)event.preventDefault();});
+    checkbox.addEventListener('change',async()=>{
+        const selected=checkbox.checked,data=new FormData();
+        for(const name of ['csrf','version'])data.set(name,form.querySelector('[name='+name+']').value);
+        data.set('action','completion');if(selected)data.set('complete','1');
+        busy=true;checkbox.disabled=true;
+        const buttons=Array.from(card.querySelectorAll('button'));buttons.forEach(button=>button.disabled=true);
+        feedback.textContent='Saving completion…';
+        try{
+            const response=await fetch(form.getAttribute('action'),{method:'POST',body:data});
+            const result=await response.json();
+            if(!response.ok||!result.saved)throw new Error(result.error||'Could not save completion.');
+            card.querySelectorAll('[name=version]').forEach(input=>input.value=result.version);
+            checkbox.checked=result.complete;
+            const badge=card.querySelector('.badge');badge.textContent=result.complete?'Awaiting sign-off':'To do';badge.className='badge '+(result.complete?'warning':'neutral');
+            const details=card.querySelector('.completion-details');details.hidden=!result.complete;
+            details.textContent=result.complete?'Completed by '+result.completed_name+' · '+result.completed_at:'';
+            const signoff=card.querySelector('.signoff-form');if(signoff)signoff.hidden=!result.complete;
+            feedback.textContent='Completion saved';
+        }catch(error){checkbox.checked=!selected;feedback.textContent=(error instanceof SyntaxError?'Could not save completion. Refresh the page and try again.':error.message);}
+        finally{busy=false;checkbox.disabled=false;buttons.forEach(button=>button.disabled=false);}
+    });
+});

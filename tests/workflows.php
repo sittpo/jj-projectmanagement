@@ -171,6 +171,17 @@ try{
     verify(Access::store($db,$actors['worker'],$unscheduled)['id']===$unscheduled,'Scheduling restores assigned contractor access');
     $p->execute('UPDATE stores SET target_date=NULL WHERE id=?',[$unscheduled]);
     denied(fn()=>Access::store($db,$actors['worker'],$unscheduled),'Removing date revokes contractor access');
+
+    $autoStep=$steps->list($sortIds[0])[0];
+    $steps->update($actors['worker'],$autoStep['id'],['action'=>'save','version'=>$autoStep['version'],'note'=>'Keep this note']);
+    $autoStep=$steps->list($sortIds[0])[0];
+    $steps->update($actors['worker'],$autoStep['id'],['action'=>'completion','version'=>$autoStep['version'],'complete'=>1]);
+    $savedStep=$steps->list($sortIds[0])[0];
+    verify($savedStep['complete']==1&&$savedStep['note']==='Keep this note','Completion autosave preserves stored notes');
+    denied(fn()=>$steps->update($actors['worker'],$autoStep['id'],['action'=>'completion','version'=>$autoStep['version']]),'Stale completion autosave rejected');
+    $steps->update($actors['worker'],$autoStep['id'],['action'=>'completion','version'=>$savedStep['version']]);
+    verify($steps->list($sortIds[0])[0]['complete']==0,'Unchecking completion persists');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

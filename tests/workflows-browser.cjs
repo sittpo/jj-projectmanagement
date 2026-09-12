@@ -79,6 +79,18 @@ module.exports=async({page,context,browser,base,password,root})=>{
     const stepId=(await card.getAttribute('id')).slice(5);
     await card.locator('textarea[name=note]').fill('Equipment replaced, cabling labeled, and connectivity verified.');
     await card.locator('input[name=complete]').check();
+    await card.locator('.completion-feedback').filter({hasText:'Completion saved'}).waitFor();
+    await worker.tab.reload();
+    assert(await card.locator('input[name=complete]').isChecked());
+    await card.locator('textarea').fill('Draft text stays here');
+    await card.locator('input[name=complete]').uncheck();
+    await card.locator('.completion-feedback').filter({hasText:'Completion saved'}).waitFor();
+    assert.equal(await card.locator('textarea').inputValue(),'Draft text stays here');
+    await worker.tab.reload();
+    assert.equal(await card.locator('input[name=complete]').isChecked(),false);
+    await card.locator('input[name=complete]').check();
+    await card.locator('.completion-feedback').filter({hasText:'Completion saved'}).waitFor();
+
     const photo=Buffer.from(await worker.tab.evaluate(()=>{
         const c=document.createElement('canvas');c.width=640;c.height=400;
         const x=c.getContext('2d');x.fillStyle='#e5ecec';x.fillRect(0,0,640,400);

@@ -39,6 +39,15 @@ if(in_array($page,$projectPages,true)){
         }
         if($page==='step-update'){
             if(!$isPost){http_response_code(405);exit('Use the step form.');}
+            if(($_POST['action']??'')==='completion'){
+                try{
+                    $storeId=$subtasks->update($user,$id??'',$_POST);
+                    $saved=array_values(array_filter($subtasks->list($storeId),fn($step)=>$step['id']===$id))[0];
+                    header('Content-Type: application/json');echo json_encode(['saved'=>true,'version'=>$saved['version'],'complete'=>(bool)$saved['complete'],'completed_name'=>$saved['completed_name'],'completed_at'=>$saved['completed_at']]);exit;
+                }catch(DomainException $exception){
+                    http_response_code($exception instanceof AccessDenied?403:409);header('Content-Type: application/json');echo json_encode(['error'=>$exception->getMessage()]);exit;
+                }
+            }
             $storeId=$subtasks->update($user,$id??'',$_POST,$_FILES['photos']??[]);
             $_SESSION['flash']='Step updated.';redirect('store',['id'=>$storeId]);
         }

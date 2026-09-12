@@ -131,3 +131,5 @@ PMs/Admins can set Not ordered (default), Ordered, Shipped, or Delivered on the 
 Prerequisites groups store readiness items. Contractors and contractor admins see read-only UniFi states with green/red bullets and text labels using the same working-day thresholds. An unfinished, undelivered store without an installation date needs attention because readiness cannot be assessed. PMs/Admins retain the editable selector.
 
 Stores without an installation date are hidden from contractors and contractor admins, including Show all, search, direct store links, photos, and reports. Removing a date revokes that access; setting a date restores access under the normal company and assignment rules. PMs/Admins retain unscheduled store access.
+
+Subtask completion saves immediately when checked or unchecked. This updates only completion, preserving saved notes, draft text, and selected uploads. Save step still saves notes and photos. Autosave uses the same role, store, sign-off lock, and version checks as normal step saves, and records an audit entry.
