@@ -182,6 +182,28 @@ try{
     $steps->update($actors['worker'],$autoStep['id'],['action'=>'completion','version'=>$savedStep['version']]);
     verify($steps->list($sortIds[0])[0]['complete']==0,'Unchecking completion persists');
 
+
+    $photoStep=$steps->list($sortIds[0])[0];
+    if(!is_dir($private.'/uploads'))mkdir($private.'/uploads',0700,true);
+    $photoFixture=function()use($p,$private,$photoStep,$actors){
+        $id=Schema::id();file_put_contents($private.'/uploads/'.$id.'.png','test fixture');
+        $p->execute('INSERT INTO subtask_photos(id,subtask_id,uploaded_by,storage_key,original_name,mime_type,created_at) VALUES(?,?,?,?,?,?,?)',[$id,$photoStep['id'],$actors['worker']['id'],$id.'.png','fixture.png','image/png',gmdate('Y-m-d\TH:i:s\Z')]);
+        return $id;
+    };
+    $deleteId=$photoFixture();
+    denied(fn()=>$steps->deletePhoto($actors['outsider'],$deleteId,(string)$photoStep['version']),'Other company cannot delete photos');
+    $steps->deletePhoto($actors['worker'],$deleteId,(string)$photoStep['version']);
+    verify(!is_file($private.'/uploads/'.$deleteId.'.png')&&!$p->rows('SELECT id FROM subtask_photos WHERE id=?',[$deleteId]),'Contractor deletion removes photo file and metadata');
+    $photoStep=$steps->list($sortIds[0])[0];
+    $steps->update($actors['worker'],$photoStep['id'],['action'=>'completion','version'=>$photoStep['version'],'complete'=>1]);
+    $photoStep=$steps->list($sortIds[0])[0];
+    $steps->update($actors['manager'],$photoStep['id'],['action'=>'signoff','version'=>$photoStep['version']]);
+    $photoStep=$steps->list($sortIds[0])[0];$deleteId=$photoFixture();
+    denied(fn()=>$steps->deletePhoto($actors['worker'],$deleteId,(string)$photoStep['version']),'Signed-off photo cannot be deleted by contractor');
+    $steps->deletePhoto($actors['manager'],$deleteId,(string)$photoStep['version']);
+    verify(count($steps->photos($photoStep['id']))===0,'PM can delete signed-off photos');
+    rmdir($private.'/uploads');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

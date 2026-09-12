@@ -133,3 +133,5 @@ Prerequisites groups store readiness items. Contractors and contractor admins se
 Stores without an installation date are hidden from contractors and contractor admins, including Show all, search, direct store links, photos, and reports. Removing a date revokes that access; setting a date restores access under the normal company and assignment rules. PMs/Admins retain unscheduled store access.
 
 Subtask completion saves immediately when checked or unchecked. This updates only completion, preserving saved notes, draft text, and selected uploads. Save step still saves notes and photos. Autosave uses the same role, store, sign-off lock, and version checks as normal step saves, and records an audit entry.
+
+Uploaded photos have a Delete photo action with confirmation. Contractors and contractor admins may delete evidence on accessible, unsigned steps; signed-off steps restrict deletion to PM/Admin. Deletion locks the step, validates its version, removes the photo record and file, and records the filename and actor in the audit details. PM deletion preserves sign-off.

@@ -141,12 +141,27 @@ module.exports=async({page,context,browser,base,password,root})=>{
     const version=await worker.tab.locator('#step-'+stepId+' input[name=version]').first().getAttribute('value');
     assert.equal((await post(lead.ctx,'step-update',{action:'signoff',version},stepId)).status(),403);
     assert.equal((await post(outsider.ctx,'step-update',{action:'save',version,note:'forbidden'},stepId)).status(),403);
+
+    const deleteForm=worker.tab.locator('.photo-delete-form').last();
+    worker.tab.once('dialog',dialog=>dialog.dismiss());
+    await deleteForm.getByRole('button',{name:'Delete photo'}).click();
+    assert.equal(await worker.tab.locator('.photo-grid img').count(),2);
+    worker.tab.once('dialog',dialog=>dialog.accept());
+    await deleteForm.getByRole('button',{name:'Delete photo'}).click();
+    await worker.tab.locator('.notice.success').waitFor();
+    assert.equal(await worker.tab.locator('.photo-grid img').count(),1);
+
     await pm.tab.goto(route('store',storeId));
     await pm.tab.locator('#step-'+stepId).getByRole('button',{name:'Sign off step',exact:true}).click();
     await pm.tab.getByRole('status').waitFor();
     assert((await pm.tab.locator('#step-'+stepId).textContent()).includes('Signed off by Project Manager'));
     await worker.tab.reload();
     assert.equal(await worker.tab.locator('#step-'+stepId+' textarea').count(),0);
+    assert.equal(await worker.tab.locator('#step-'+stepId+' .photo-delete-form').count(),0);
+    const signedPhotoId=new URL(base+photoUrl).searchParams.get('id');
+    assert.equal((await post(worker.ctx,'photo',{action:'delete-photo',confirmed:'1',version:'1'},signedPhotoId)).status(),403);
+    assert.equal(await pm.tab.locator('#step-'+stepId+' .photo-delete-form').count(),1);
+
     await page.goto(route('store',storeId));
     await page.screenshot({path:path.join(root,'storage/store-workflow-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});

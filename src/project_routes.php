@@ -32,6 +32,11 @@ if(in_array($page,$projectPages,true)){
             redirect('stores',['q'=>ProjectRepository::text($_POST,'q',160)]);
         }
         if(in_array($page,['store','store-edit','store-report'],true)&&$id)$store=Access::store($db,$user,$id);
+        if($page==='photo'&&$isPost){
+            if(($_POST['action']??'')!=='delete-photo'||($_POST['confirmed']??'')!=='1')throw new DomainException('Confirm before deleting the photo.');
+            $storeId=$subtasks->deletePhoto($user,$id??'',ProjectRepository::text($_POST,'version',20,true));
+            $_SESSION['flash']='Photo deleted.';redirect('store',['id'=>$storeId]);
+        }
         if($page==='photo'){
             $photo=$subtasks->photo($user,$id??'');
             header('Content-Type: '.$photo['mime_type']);header('Content-Length: '.filesize($photo['path']));header('Content-Disposition: inline; filename="photo.'.pathinfo($photo['storage_key'],PATHINFO_EXTENSION).'"');
@@ -87,6 +92,7 @@ if(in_array($page,$projectPages,true)){
         error_log((string)$exception);$error='The change could not be saved. Check for duplicate codes or names and try again.';
         if($page==='step-update')$page='step-error';
     }
+    if($page==='photo'&&$isPost){http_response_code(400);$page='step-error';}
     if($page==='stores'){
         $storeQuery=is_string($_GET['q']??null)?mb_substr(trim($_GET['q']),0,160):'';
         $showAllStores=$project->showAllStores($user['id']);

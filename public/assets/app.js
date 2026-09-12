@@ -270,3 +270,12 @@ document.querySelectorAll('.step-form input[name=complete]').forEach(checkbox=>{
         finally{busy=false;checkbox.disabled=false;buttons.forEach(button=>button.disabled=false);}
     });
 });
+
+document.querySelectorAll('.photo-delete-form').forEach(form=>{
+    const button=form.querySelector('button');button.disabled=false;
+    form.addEventListener('submit',event=>{
+        if(!window.confirm('Delete this photo permanently? This cannot be undone.')){event.preventDefault();return;}
+        const confirmed=document.createElement('input');confirmed.type='hidden';confirmed.name='confirmed';confirmed.value='1';form.append(confirmed);
+        button.disabled=true;button.textContent='Deleting…';
+    });
+});

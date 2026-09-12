@@ -76,6 +76,31 @@ final class SubtaskRepository
         }
         return $result;
     }
+    public function deletePhoto(array $user,string $id,string $version): string
+    {
+        $this->db->beginTransaction();
+        try{
+            $q=$this->db->prepare('SELECT subtask_id FROM subtask_photos WHERE id=?');$q->execute([$id]);$stepId=$q->fetchColumn();
+            if(!$stepId)throw new DomainException('Photo not found.');
+            $lock=$this->db->getAttribute(PDO::ATTR_DRIVER_NAME)==='mysql'?' FOR UPDATE':'';
+            $q=$this->db->prepare('SELECT s.*,t.store_id FROM subtasks s JOIN tasks t ON t.id=s.task_id WHERE s.id=?'.$lock);$q->execute([$stepId]);$step=$q->fetch();
+            Access::store($this->db,$user,$step['store_id']);
+            if($step['signed_at']&&!Access::atLeast($user,'pm'))throw new AccessDenied('Only a PM or Admin can delete photos after sign-off.');
+            if((string)$step['version']!==$version)throw new DomainException('This step changed. Reload before deleting the photo.');
+            $q=$this->db->prepare('SELECT * FROM subtask_photos WHERE id=?');$q->execute([$id]);$photo=$q->fetch();
+            if(!$photo)throw new DomainException('Photo not found.');
+            if(!preg_match('/^[a-f0-9]{32}\\.(jpg|png|webp)$/D',$photo['storage_key']))throw new DomainException('Invalid photo reference.');
+            $q=$this->db->prepare('DELETE FROM subtask_photos WHERE id=?');$q->execute([$id]);
+            $q=$this->db->prepare('UPDATE subtasks SET version=version+1 WHERE id=?');$q->execute([$stepId]);
+            $q=$this->db->prepare("INSERT INTO task_audit(id,subtask_id,actor_id,actor_name,action,details,created_at) VALUES(?,?,?,?,'save',?,?)");
+            $q->execute([Schema::id(),$stepId,$user['id'],$user['display_name'],json_encode(['photo_deleted'=>$id,'filename'=>$photo['original_name'],'after_signoff'=>(bool)$step['signed_at']],JSON_THROW_ON_ERROR),gmdate('Y-m-d\\TH:i:s\\Z')]);
+            $this->db->commit();
+        }catch(Throwable $error){if($this->db->inTransaction())$this->db->rollBack();throw $error;}
+        // Remove metadata first so a failed filesystem cleanup cannot leave a public photo reference.
+        $path=$this->uploadRoot.'/'.$photo['storage_key'];
+        if(is_file($path)&&!@unlink($path))error_log('Photo cleanup failed for '.$id);
+        return $step['store_id'];
+    }
     public function photo(array $user,string $id): array
     {
         $q=$this->db->prepare('SELECT p.*,t.store_id FROM subtask_photos p JOIN subtasks s ON s.id=p.subtask_id JOIN tasks t ON t.id=s.task_id WHERE p.id=?');$q->execute([$id]);$photo=$q->fetch();

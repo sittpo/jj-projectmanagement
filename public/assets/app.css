@@ -1462,3 +1462,7 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .photo-save-reminder strong {font-size:16px}
 :root[data-theme=dark] .photo-save-reminder {background:#3b2d13;color:#ffe3a1;border-color:#dfa83e}
 .photos-pending > .form-actions > button {outline:3px solid #c78214;outline-offset:3px}
+
+.photo-item {min-width:0}
+.photo-delete-form {margin-top:8px}
+.photo-delete-form .button {width:100%;color:#d45d68}
