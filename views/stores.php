@@ -5,6 +5,6 @@
 <form method="post" action="<?= e(url('stores')) ?>" class="store-preference-form"><?= csrf() ?><input type="hidden" name="action" value="store-preference"><input type="hidden" name="q" value="<?= e($storeQuery) ?>"><label class="checkbox-label"><input type="checkbox" name="show_all" value="1" <?= $showAllStores?'checked':'' ?>>Show all stores</label><noscript><button class="button">Save preference</button></noscript></form>
 </div>
 <p class="stores-help">Unfinished stores include work awaiting PM sign-off. Undated stores appear last. “Show all stores” is saved to your account.</p>
-<p class="stores-feedback" role="status" aria-live="polite"></p>
+<p class="stores-feedback sr-only" role="status" aria-live="polite"></p>
 <div id="store-results"><?php require __DIR__.'/stores-results.php'; ?></div>
 </section>

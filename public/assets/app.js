@@ -142,6 +142,10 @@ document.querySelectorAll('.file-picker-input').forEach(input=>input.addEventLis
     const input=search.querySelector('[name=q]'),preference=document.querySelector('.store-preference-form');
     const checkbox=preference.querySelector('[name=show_all]'),results=document.querySelector('#store-results');
     const feedback=document.querySelector('.stores-feedback');
+    const setFeedback=(message,isError=false)=>{
+        feedback.classList.toggle('sr-only',!isError);
+        feedback.textContent=message;
+    };
     let timer,controller,revision=0;
     const refresh=async()=>{
         clearTimeout(timer);
@@ -150,17 +154,17 @@ document.querySelectorAll('.file-picker-input').forEach(input=>input.addEventLis
         const url=new URL(search.action,location.href);
         url.search=new URLSearchParams({page:'stores',q:input.value,fragment:'1'});
         results.setAttribute('aria-busy','true');
-        feedback.textContent='Searching…';
+        setFeedback('Searching…');
         try{
             const response=await fetch(url,{signal:controller.signal});
             const html=await response.text();
             if(!response.ok||response.redirected||!html.includes('table-scroll'))throw new Error('Search failed');
             if(current!==revision)return;
             results.innerHTML=html;
-            feedback.textContent=results.querySelector('h2').textContent+' shown.';
+            setFeedback(results.querySelector('h2').textContent+' shown.');
             url.searchParams.delete('fragment');history.replaceState(null,'',url);
         }catch(error){
-            if(error.name!=='AbortError'&&current===revision)feedback.textContent='Could not update stores. Refresh the page and try again.';
+            if(error.name!=='AbortError'&&current===revision)setFeedback('Could not update stores. Refresh the page and try again.',true);
         }finally{if(current===revision)results.removeAttribute('aria-busy');}
     };
     input.addEventListener('input',()=>{
@@ -174,7 +178,7 @@ document.querySelectorAll('.file-picker-input').forEach(input=>input.addEventLis
         const data=new FormData(preference);
         // Disabled controls are excluded from FormData.
         if(selected)data.set('show_all','1');else data.delete('show_all');
-        feedback.textContent='Saving preference…';
+        setFeedback('Saving preference…');
         try{
             const url=new URL(preference.getAttribute('action'),location.href);url.searchParams.set('fragment','1');
             const response=await fetch(url,{method:'POST',body:data});
@@ -182,7 +186,7 @@ document.querySelectorAll('.file-picker-input').forEach(input=>input.addEventLis
             await refresh();
         }catch{
             checkbox.checked=!selected;
-            feedback.textContent='Could not save your preference. Please try again.';
+            setFeedback('Could not save your preference. Please try again.',true);
         }finally{checkbox.disabled=false;}
     });
 })();
