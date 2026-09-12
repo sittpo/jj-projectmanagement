@@ -1,55 +1,92 @@
 <?php
 declare(strict_types=1);
-
 if (!in_array(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), ['/', '/index.php'], true)) {
-    http_response_code(404);
-    header('Content-Type: text/plain; charset=utf-8');
-    echo 'Not found';
-    exit;
+    http_response_code(404); exit('Not found');
 }
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store');
-$environment = 'production';
-$connected = false;
+header('X-Content-Type-Options: nosniff');
+header("Content-Security-Policy: default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+header('Referrer-Policy: same-origin');
+ini_set('session.use_strict_mode', '1');
+session_name('jj_session');
+session_set_cookie_params(['httponly' => true, 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off', 'samesite' => 'Lax', 'path' => '/']);
+session_start();
+$_SESSION['csrf'] ??= bin2hex(random_bytes(32));
+require dirname(__DIR__) . '/src/view.php';
 try {
-    $config = require dirname(__DIR__) . '/src/bootstrap.php';
-    require dirname(__DIR__) . '/src/database.php';
-    $environment = $config['environment'];
-    $pdo = connectDatabase($config);
-    $connected = (int) $pdo->query('SELECT 1')->fetchColumn() === 1;
+    require dirname(__DIR__) . '/src/app.php';
+    $auth = new Auth($db, $users);
+    $user = $auth->user();
 } catch (Throwable $exception) {
     error_log((string) $exception);
+    http_response_code(503); exit('The application is unavailable. Please try again shortly.');
 }
-if (!$connected) {
-    http_response_code(503);
+$page = is_string($_GET['page'] ?? null) ? $_GET['page'] : 'dashboard';
+if (!in_array($page, ['dashboard','login','logout','users','user-edit','report-export'], true)) {
+    http_response_code(404); exit('Not found');
 }
-$escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>JJ Project Management</title>
-    <style>
-        :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
-        body { margin: 0; min-height: 100svh; display: grid; place-items: center; background: light-dark(#f3f5f8, #10141d); color: light-dark(#182234, #eef2fa); }
-        main { margin: 24px; padding: clamp(24px, 6vw, 56px); max-width: 540px; border: 1px solid light-dark(#dce2eb, #30394a); border-radius: 20px; background: light-dark(#fff, #181e2a); }
-        small { color: light-dark(#596579, #a6b3c9); letter-spacing: .08em; }
-        h1 { font-size: clamp(32px, 7vw, 48px); margin: 20px 0; }
-        p { line-height: 1.6; }
-        code { color: light-dark(#275cbd, #9fc0ff); }
-    </style>
-</head>
-<body>
-<main>
-    <small>JJ PROJECT MANAGEMENT</small>
-    <h1><?= 'Hello World' ?></h1>
-    <p>Environment: <code><?= $escape($environment) ?></code></p>
-    <p>Database: <strong><?= $connected ? 'Connected' : 'Unavailable' ?></strong></p>
-    <?php if ($environment === 'dev' && $connected): ?>
-        <p>PHP <?= $escape(PHP_VERSION) ?> · <?= $escape($config['driver']) ?> · Connection verified with <code>SELECT 1</code>.</p>
-    <?php endif; ?>
-</main>
-</body>
-</html>
+$isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
+if ($isPost && (!is_string($_POST['csrf'] ?? null) || !hash_equals($_SESSION['csrf'], $_POST['csrf']))) {
+    http_response_code(403); exit('Your session has changed. Refresh the page and try again.');
+}
+if (!$user && $page !== 'login') { redirect('login'); }
+if ($user && $page === 'login') { redirect('dashboard'); }
+if (in_array($page, ['users','user-edit'], true) && $user['role'] !== 'admin') {
+    http_response_code(403);
+    $page = 'forbidden';
+}
+if ($page === 'report-export' && !in_array($user['role'], ['admin','pm'], true)) {
+    http_response_code(403); $page = 'forbidden';
+}
+$error = null;
+$flash = $_SESSION['flash'] ?? null;
+unset($_SESSION['flash']);
+if ($page === 'login' && $isPost) {
+    try {
+        if ($auth->login((string) ($_POST['username'] ?? ''), (string) ($_POST['password'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? 'unknown')) {
+            redirect('dashboard');
+        }
+        $error = 'The username or password is incorrect.';
+    } catch (DomainException $exception) { $error = $exception->getMessage(); }
+}
+if ($page === 'logout') {
+    if (!$isPost) { http_response_code(405); header('Allow: POST'); exit('Use the sign-out button.'); }
+    $auth->logout(); redirect('login');
+}
+$editing = null;
+if ($page === 'user-edit') {
+    $id = isset($_GET['id']) && is_string($_GET['id']) ? $_GET['id'] : null;
+    $editing = $id ? $users->find($id) : null;
+    if ($id && !$editing) { http_response_code(404); exit('User not found.'); }
+    if ($isPost) {
+        try {
+            $users->save($_POST, $id, $user['id']);
+            if ($id === $user['id']) {
+                $_SESSION['user_version'] = (int) $users->find($id)['session_version'];
+                session_regenerate_id(true);
+            }
+            $_SESSION['flash'] = $id ? 'User updated.' : 'User created.';
+            redirect('users');
+        } catch (DomainException $exception) {
+            $error = $exception->getMessage();
+        } catch (PDOException $exception) {
+            error_log((string) $exception);
+            $error = 'The user could not be saved. Check for a duplicate username and try again.';
+        }
+        $editing = ['id' => $id, 'username' => $_POST['username'] ?? '', 'display_name' => $_POST['display_name'] ?? '',
+            'email' => $_POST['email'] ?? '', 'role' => $_POST['role'] ?? 'contractor', 'active' => isset($_POST['active']) ? 1 : 0];
+    }
+}
+if ($page === 'report-export') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="sample-rollout-summary.csv"');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['Data source', 'Metric', 'Value', 'Unit', 'Note'], ',', '"', '');
+    foreach (DashboardReport::sample()['metrics'] as $metric) {
+        fputcsv($output, ['Sample data', $metric['label'], $metric['value'], $metric['unit'], $metric['trend']], ',', '"', '');
+    }
+    fclose($output); exit;
+}
+$title = match ($page) { 'login' => 'Sign in', 'users' => 'Users', 'user-edit' => isset($editing['id']) ? 'Edit user' : 'Create user', 'forbidden' => 'Access restricted', default => 'Dashboard' };
+require dirname(__DIR__) . '/views/layout.php';

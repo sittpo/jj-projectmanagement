@@ -1,0 +1,12 @@
+<?php $allUsers = $users->all(); ?>
+<div class="page-heading"><div><div class="eyebrow">ADMINISTRATION</div><h1>Users</h1><p>Manage the people who can access your project.</p></div><a class="button primary" href="<?= e(url('user-edit')) ?>"><?= icon('plus') ?>Create user</a></div>
+<div class="admin-summary"><span><?= icon('users') ?><strong><?= count($allUsers) ?></strong> users</span><span><i class="status-dot"></i><strong><?= count(array_filter($allUsers, fn($row) => (int) $row['active'] === 1)) ?></strong> active</span><span><?= icon('shield') ?>Administrator access only</span></div>
+<section class="panel">
+<div class="panel-heading"><div><h2>Project users</h2><p>Changes to access take effect on the user's next request.</p></div><label class="search-label"><span class="sr-only">Filter users</span><input type="search" id="user-filter" placeholder="Filter users…" aria-label="Filter users"></label></div>
+<div class="table-scroll"><table class="users-table"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>
+<?php foreach ($allUsers as $row): ?>
+<tr data-user-row><td><div class="table-user"><span class="user-avatar"><?= e(strtoupper(mb_substr($row['display_name'], 0, 1))) ?></span><div><strong><?= e($row['display_name']) ?><?= $row['id'] === $user['id'] ? ' (you)' : '' ?></strong><small><?= e($row['username']) ?></small></div></div></td><td><?= e($row['email'] ?: '—') ?></td><td><?= e(match($row['role']) { 'admin' => 'Administrator', 'pm' => 'Project manager', default => 'Contractor' }) ?></td><td><span class="badge <?= $row['active'] ? 'positive' : 'neutral' ?>"><?= $row['active'] ? 'Active' : 'Inactive' ?></span></td><td><a class="button compact" href="<?= e(url('user-edit', ['id' => $row['id']])) ?>" aria-label="Edit <?= e($row['display_name']) ?>">Edit</a></td></tr>
+<?php endforeach; ?>
+</tbody></table><p id="no-users" class="empty-search" hidden>No users match your search.</p></div>
+</section>
+<div class="role-grid"><article><h3><?= icon('shield') ?>Administrator</h3><p>Full project access and user management.</p></article><article><h3><?= icon('chart') ?>Project manager</h3><p>Project-wide visibility and reports. No user administration.</p></article><article><h3><?= icon('store') ?>Contractor</h3><p>Access will be limited to assigned stores. Store assignment is the next development phase.</p></article></div>

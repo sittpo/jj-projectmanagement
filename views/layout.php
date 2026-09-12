@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title><?= e($title) ?> · JJ Project Management</title>
+    <link rel="stylesheet" href="/assets/app.css">
+    <script src="/assets/app.js" defer></script>
+</head>
+<body>
+<?php if ($page === 'login'): ?>
+    <?php require __DIR__ . '/login.php'; ?>
+<?php else: ?>
+<aside class="sidebar" id="navigation">
+    <a class="brand" href="<?= e(url('dashboard')) ?>"><span class="brand-mark">JJ<span></span></span><span>Project Management<small>STORE ROLLOUT</small></span></a>
+    <nav aria-label="Main navigation">
+        <p class="nav-heading">Workspace</p>
+        <a class="nav-link <?= $page === 'dashboard' ? 'selected' : '' ?>" <?= $page === 'dashboard' ? 'aria-current="page"' : '' ?> href="<?= e(url('dashboard')) ?>"><?= icon('grid') ?>Dashboard</a>
+        <?php if ($user['role'] === 'admin'): ?>
+        <p class="nav-heading">Administration</p>
+        <a class="nav-link <?= in_array($page, ['users','user-edit']) ? 'selected' : '' ?>" <?= in_array($page, ['users','user-edit']) ? 'aria-current="page"' : '' ?> href="<?= e(url('users')) ?>"><?= icon('users') ?>Users</a>
+        <?php endif; ?>
+    </nav>
+    <div class="sidebar-bottom"><div class="environment-dot"></div><?= e(ucfirst($config['environment'])) ?> environment <span class="version">v0.2</span></div>
+</aside>
+<button class="nav-overlay" aria-label="Close navigation" tabindex="-1"></button>
+<div class="workspace">
+<header class="topbar">
+    <div class="breadcrumb"><button class="icon-button menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="navigation"><?= icon('menu') ?></button><span>Workspace</span><span class="slash">/</span><strong><?= e($title) ?></strong></div>
+    <div class="topbar-actions">
+        <button class="icon-button theme-toggle" aria-label="Switch color theme" title="Switch color theme"><?= icon('moon') ?></button>
+        <span class="topbar-divider"></span>
+        <span class="user-avatar"><?= e(strtoupper(mb_substr($user['display_name'], 0, 1))) ?></span>
+        <span class="user-label"><?= e($user['display_name']) ?><small><?= e(match($user['role']) { 'admin' => 'Administrator', 'pm' => 'Project manager', default => 'Contractor' }) ?></small></span>
+        <form method="post" action="<?= e(url('logout')) ?>"><?= csrf() ?><button class="icon-button" aria-label="Sign out" title="Sign out"><?= icon('logout') ?></button></form>
+    </div>
+</header>
+<main class="main-content" id="main">
+    <?php if ($flash): ?><div class="notice success" role="status"><?= icon('check') ?><?= e($flash) ?></div><?php endif; ?>
+    <?php if ($error): ?><div class="notice error" role="alert"><?= e($error) ?></div><?php endif; ?>
+    <?php if ($page === 'forbidden'): ?>
+    <div class="panel empty-state"><?= icon('shield') ?><h1>Access restricted</h1><p>You do not have permission to view this section.</p><a class="button primary" href="<?= e(url('dashboard')) ?>">Back to dashboard</a></div>
+    <?php else: require __DIR__ . '/' . match ($page) { 'users' => 'users', 'user-edit' => 'user-form', default => 'dashboard' } . '.php'; endif; ?>
+    <footer class="page-footer"><span>JJ Project Management</span><span>Built for a connected rollout.</span></footer>
+</main>
+</div>
+<?php endif; ?>
+</body>
+</html>

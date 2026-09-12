@@ -30,4 +30,6 @@ if (-not (Test-Path (Join-Path $projectRoot '.env'))) {
 }
 & (Join-Path $phpDirectory 'php.exe') -v
 if ($LASTEXITCODE -ne 0) { throw 'PHP failed to start. Check the Microsoft Visual C++ 2022 x64 runtime.' }
+& (Join-Path $phpDirectory 'php.exe') (Join-Path $projectRoot 'scripts/console.php') migrate
+if ($LASTEXITCODE -ne 0) { throw 'Database migration failed.' }
 Write-Host 'Setup complete. Run .\scripts\dev.ps1 to start.'
