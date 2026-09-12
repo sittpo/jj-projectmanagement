@@ -261,7 +261,7 @@ document.querySelectorAll('.step-form input[name=complete]').forEach(checkbox=>{
             if(!response.ok||!result.saved)throw new Error(result.error||'Could not save completion.');
             card.querySelectorAll('[name=version]').forEach(input=>input.value=result.version);
             checkbox.checked=result.complete;
-            const badge=card.querySelector('.badge');badge.textContent=result.status;badge.className='badge '+(result.complete?'warning':'neutral');
+            const badge=card.querySelector('.badge');badge.textContent=result.status;badge.className='badge '+(result.complete?'warning':(result.status==='In progress'?'in-progress':'neutral'));
             const details=card.querySelector('.completion-details');details.hidden=!result.complete;
             details.textContent=result.complete?'Completed by '+result.completed_name+' · '+result.completed_at:'';
             const signoff=card.querySelector('.signoff-form');if(signoff)signoff.hidden=!result.complete;

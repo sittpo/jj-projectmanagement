@@ -1472,3 +1472,6 @@ input[type=file].file-picker-input{width:1px;max-width:1px;min-width:0;height:1p
 .prereq-help {margin:20px 0;color:var(--muted)}
 .prereq-status-table input:not([type=checkbox]):not([type=radio]) {padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);max-width:200px}
 .prereq-status-table input[type=number] {width:90px}
+
+.badge.in-progress {background:#ffe4a3;color:#684400}
+:root[data-theme=dark] .badge.in-progress {background:#715019;color:#fff0c2}
