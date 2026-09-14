@@ -11,7 +11,7 @@
 <div class="form-actions"><button class="button primary" name="action" value="save-email">Save reminder email</button></div>
 <h3>Send a test email</h3>
 <p class="field-help">Sends the current draft with example store details to this address only, using the saved SMTP connector. Does not save the draft or add a store reminder log.</p>
-<label>Test recipient<input type="email" name="test_recipient" maxlength="254" value="<?= e(is_string($_POST['test_recipient']??null)?$_POST['test_recipient']:'') ?>" placeholder="you@example.com"></label>
+<label>Test recipient<input type="email" name="test_recipient" maxlength="254" value="<?= e(is_string($_POST['test_recipient']??null)?$_POST['test_recipient']:($user['email']??'')) ?>" placeholder="you@example.com"></label>
 <div class="form-actions"><button class="button secondary" name="action" value="test-email">Send test reminder</button></div>
 </form>
 </section>
