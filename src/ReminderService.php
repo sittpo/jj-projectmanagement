@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/ReminderTemplate.php';
 final class ReminderService
 {
     public function __construct(private ProjectRepository $project,private SmtpSettings $settings) {}
@@ -28,8 +29,8 @@ final class ReminderService
                 $this->project->execute("INSERT INTO reminder_log(id,store_id,recipient,installation_date,scheduled_for,status,created_at) VALUES (?,?,?,?,?,'sending',?)",[$id,$store['id'],$job['recipient'],$store['target_date'],$job['scheduled_for'],$now]);
             }catch(PDOException $error){if((string)$error->getCode()==='23000')continue;throw $error;}
             try{
-                $subject='Upcoming installation: '.$store['name'].' on '.$store['target_date'];
-                $body="Hello,\n\nThis is a reminder of the equipment installation at ".$store['name']." (".$store['code'].") on ".$store['target_date'].".\n\nPlease make sure the installation team can access the work area. Contact your project manager if arrangements need to change.\n\nJJ Project Management";
+                $message=(new ReminderTemplate($this->project))->render($store);
+                $subject=$message['subject'];$body=$message['body'];
                 if($transport)$transport($job['recipient'],$subject,$body);else $this->send($job['recipient'],$subject,$body);
                 $this->project->execute("UPDATE reminder_log SET status='sent',sent_at=? WHERE id=?",[gmdate('Y-m-d\TH:i:s\Z'),$id]);$status='sent';
             }catch(Throwable $error){
@@ -58,8 +59,8 @@ final class ReminderService
                     [$id,$storeId,$actor['id'],$actor['display_name'],$requestId,$recipient,$store['target_date'],substr($now,0,10),$now]);
             }catch(PDOException $error){if((string)$error->getCode()==='23000')continue;throw $error;}
             try{
-                $subject='Installation reminder: '.$store['name'].' on '.$store['target_date'];
-                $body="Hello,\n\nThis is a reminder of the equipment installation at ".$store['name']." (".$store['code'].") on ".$store['target_date'].".\n\nPlease make sure the installation team can access the work area. Contact your project manager if arrangements need to change.\n\nJJ Project Management";
+                $message=(new ReminderTemplate($this->project))->render($store);
+                $subject=$message['subject'];$body=$message['body'];
                 if($transport)$transport($recipient,$subject,$body);else $this->send($recipient,$subject,$body,false);
                 $this->project->execute("UPDATE manual_reminder_log SET status='sent',sent_at=? WHERE id=?",[gmdate('Y-m-d\TH:i:s\Z'),$id]);$status='sent';
             }catch(Throwable $error){
@@ -79,6 +80,20 @@ final class ReminderService
         try{
             if($transport)$transport($recipient,$subject,$body);else $this->send($recipient,$subject,$body,false);
         }catch(Throwable $error){error_log('SMTP test failed: '.get_class($error));throw new DomainException('SMTP test failed or acceptance could not be confirmed. Check the saved credentials, verified sender, and SMTP2Go activity.');}
+    }
+    public function testReminder(array $actor,string $recipient,array $draft,?callable $transport=null): void
+    {
+        if(!Access::atLeast($actor,'pm'))throw new AccessDenied('Only a PM or Admin can test reminder emails.');
+        if(!filter_var($recipient,FILTER_VALIDATE_EMAIL)||strlen($recipient)>254)throw new DomainException('Enter a valid test recipient email.');
+        $message=(new ReminderTemplate($this->project))->render(ReminderTemplate::sampleStore(),$draft);
+        if(!$transport)$this->configured(false);
+        try{
+            if($transport)$transport($recipient,'[TEST] '.$message['subject'],$message['body']);
+            else $this->send($recipient,'[TEST] '.$message['subject'],$message['body'],false);
+        }catch(Throwable $error){
+            error_log('Reminder template test failed: '.get_class($error));
+            throw new DomainException('Test reminder failed or acceptance could not be confirmed. Check SMTP settings and SMTP2Go activity before trying again.');
+        }
     }
     private function configured(bool $enabled): void
     {

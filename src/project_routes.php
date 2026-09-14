@@ -95,7 +95,16 @@ if(in_array($page,$projectPages,true)){
             $ids=$_POST['order']??[];if(!is_array($ids))throw new DomainException('Invalid order.');
             $project->reorder($ids,(string)($_POST['kind']??''));$_SESSION['flash']='Template order saved for new stores.';redirect('templates');
         }
-        if($page==='settings'&&$isPost){
+        if($page==='settings'&&$isPost&&in_array($_POST['action']??'',['save-email','test-email'],true)){
+            if($_POST['action']==='save-email'){
+                (new ReminderTemplate($project))->save($user,$_POST);
+                $_SESSION['flash']='Reminder email saved.';redirect('settings');
+            }else{
+                (new ReminderService($project,$smtpSettings))->testReminder($user,ProjectRepository::text($_POST,'test_recipient',254,true),$_POST);
+                $notice='Test reminder accepted by SMTP. Check the recipient inbox or SMTP2Go activity. The draft has not been saved.';
+            }
+        }
+        if($page==='settings'&&$isPost&&!in_array($_POST['action']??'',['save-email','test-email'],true)){
             $days=filter_var($_POST['reminder_days']??'',FILTER_VALIDATE_INT);
             if($days===false||$days<0||$days>365)throw new DomainException('Choose 0–365 days before installation.');
             $project->execute("UPDATE project_settings SET setting_value=? WHERE setting_key='reminder_days'",[(string)$days]);

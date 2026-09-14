@@ -80,6 +80,23 @@ try{
     $testCalls=[];$service->test('test@example.test',function($to,$subject,$body)use(&$testCalls){$testCalls[]=[$to,$subject];});
     verify($testCalls[0][0]==='test@example.test'&&str_contains($testCalls[0][1],'SMTP test'),'SMTP test targets the specified recipient');
 
+    $templateEditor=new ReminderTemplate($p);
+    $originalTemplate=$templateEditor->read();
+    $draft=['subject'=>'Visit {{store_code}}','body'=>"Hello {{owner_name}}\n{{store_name}}: {{installation_date}}"];
+    denied(fn()=>$templateEditor->save($actors['worker'],$draft),'Contractors cannot edit email templates');
+    denied(fn()=>$templateEditor->validate(['subject'=>"Bad\nSubject",'body'=>'Message']),'Multiline subjects rejected');
+    denied(fn()=>$templateEditor->validate(['subject'=>'{{unknown}}','body'=>'Message']),'Unknown placeholders rejected');
+    $templateEditor->save($actors['manager'],$draft);
+    verify((new ReminderTemplate($p))->read()===$draft,'Reminder template persists');
+    $rendered=$templateEditor->render($store);
+    verify($rendered['subject']==='Visit STORE-A'&&str_contains($rendered['body'],$installation),'Store placeholders render');
+    $captured=[];
+    $service->testReminder($actors['admin'],'preview@example.test',$draft,function(...$args)use(&$captured){$captured[]=$args;});
+    verify(count($captured)===1&&$captured[0][0]==='preview@example.test'&&$captured[0][1]==='[TEST] Visit DEMO-001','Test sends sample data only to the specified recipient');
+    denied(fn()=>$service->testReminder($actors['worker'],'preview@example.test',$draft),'Contractors cannot test reminder emails');
+    denied(fn()=>$service->testReminder($actors['admin'],'invalid',$draft),'Invalid test recipient rejected');
+    $templateEditor->save($actors['admin'],$originalTemplate);
+
     verify(!$p->showAllStores($actors['admin']['id']),'Show all defaults off');
     $p->saveStorePreference($actors['admin']['id'],true);
     verify((new ProjectRepository($db))->showAllStores($actors['admin']['id']),'Preference persists across repository instances');

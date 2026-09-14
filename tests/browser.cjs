@@ -52,6 +52,15 @@ function command(args) {
     await page.getByRole('heading', {name:'Project dashboard'}).waitFor();
     assert(await page.getByRole('link', {name:'Users',exact:true}).isVisible());
     await page.screenshot({path:path.join(root,'storage/dashboard-desktop.png'),fullPage:true});
+    await page.goto(base+'/index.php?page=settings');
+    await page.getByLabel('Subject',{exact:true}).fill('Visit {{store_name}}');
+    await page.getByLabel('Message',{exact:true}).fill('Installation on {{installation_date}}.');
+    await page.getByRole('button',{name:'Save reminder email',exact:true}).click();
+    assert.equal(await page.getByLabel('Subject',{exact:true}).inputValue(),'Visit {{store_name}}');
+    await page.getByRole('button',{name:'Send test reminder',exact:true}).click();
+    assert(await page.getByText('test_recipient is required.',{exact:true}).count() || await page.getByRole('alert').count());
+    await page.screenshot({path:path.join(root,'storage/reminder-email-editor.png'),fullPage:true});
+    await page.goto(base);
     const csv = await context.request.get(base+'/index.php?page=report-export');
     assert.equal(csv.status(),200);
     assert((await csv.text()).includes('Live data'));

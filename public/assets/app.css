@@ -1498,3 +1498,5 @@ input[type=file].sr-only{width:1px;max-width:1px;min-width:0;height:1px;padding:
 
 .overview-grid > .panel {display:flex;flex-direction:column}
 .overview-grid > .panel > .panel-foot {margin-top:auto}
+
+.reminder-email-panel{margin-top:24px}.reminder-email-form{display:flex;flex-direction:column;gap:12px}.reminder-email-form>label{font-size:12px;font-weight:550}.reminder-email-form>label:not(:first-child){margin-top:8px}.reminder-email-form code{display:inline-block;margin:3px 8px 3px 0;overflow-wrap:anywhere}.reminder-email-form h3{margin-top:16px}

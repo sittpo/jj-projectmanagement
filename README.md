@@ -137,3 +137,9 @@ Browser tests require Playwright and Microsoft Edge, run a temporary server on p
 Remote: https://github.com/sittpo/jj-projectmanagement.git
 
 Push development work to `origin/dev`. Only merge or push to `master` when explicitly requested. Git identity is repository-local. Never commit credentials, `.env`, databases, runtime files, exports or uploads.
+
+## Reminder email editor
+
+PMs and Admins can edit the plain-text subject and message under Project management > Reminder schedule. Listed placeholders insert store details into both automatic and manual reminders. The template is stored in project settings and included in database exports; SMTP credentials remain environment-specific.
+
+Send test reminder sends the current draft with sample store data to the entered recipient through the saved SMTP connector. It does not save the draft or change store reminder logs. The existing CLI development-send flag remains required for scheduled sending.
