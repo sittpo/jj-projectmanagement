@@ -287,12 +287,12 @@ document.querySelector('.csv-picker-input')?.addEventListener('change',event=>{d
 (() => {
     const toggle=document.querySelector('.store-multi-toggle'),form=document.querySelector('#store-bulk-delete');
     if(!toggle||!form)return;
-    const results=document.querySelector('#store-results'),remove=form.querySelector('button'),count=form.querySelector('.store-selection-count');
+    const results=document.querySelector('#store-results'),remove=form.querySelector('.store-delete-selected'),add=form.querySelector('.store-add-templates'),count=form.querySelector('.store-selection-count');
     let active=false;
     const boxes=()=>Array.from(results.querySelectorAll('.store-select'));
     const update=()=>{
         const all=boxes(),selected=all.filter(box=>box.checked),header=results.querySelector('.store-select-all');
-        count.textContent=selected.length+' stores selected';remove.disabled=!selected.length;
+        count.textContent=selected.length+' stores selected';remove.disabled=!selected.length;add.disabled=!selected.length;
         if(header){header.checked=all.length>0&&selected.length===all.length;header.indeterminate=selected.length>0&&selected.length<all.length;header.disabled=!all.length;}
     };
     const render=()=>{results.querySelectorAll('.store-select-cell').forEach(cell=>cell.hidden=!active);update();};
@@ -311,6 +311,13 @@ document.querySelector('.csv-picker-input')?.addEventListener('change',event=>{d
     form.addEventListener('submit',event=>{
         const selected=boxes().filter(box=>box.checked);
         if(!selected.length||results.getAttribute('aria-busy')==='true'){event.preventDefault();return;}
+        if(event.submitter===add){
+            if(!window.confirm('Add all missing active task templates to '+selected.length+' selected store(s)? Existing steps and evidence are preserved. New steps are unchecked and appended to the checklist and report. Completed stores may become unfinished.')){event.preventDefault();return;}
+            form.querySelector('[name="action"]').value='add-missing-templates';
+            const confirmation=document.createElement('input');confirmation.type='hidden';confirmation.name='confirmed';confirmation.value='1';form.append(confirmation);
+            add.disabled=true;remove.disabled=true;add.textContent='Adding…';return;
+        }
+        form.querySelector('[name="action"]').value='delete-stores';
         const names=selected.slice(0,6).map(box=>box.dataset.label).join('\n');
         if(!window.confirm('Permanently delete '+selected.length+' selected store(s)?\n\n'+names+(selected.length>6?'\n…':'')+'\n\nThis deletes their tasks, notes, photos, assignments and reminder history. This cannot be undone.')){event.preventDefault();return;}
         const confirmation=document.createElement('input');confirmation.type='hidden';confirmation.name='confirmed';confirmation.value='1';form.append(confirmation);

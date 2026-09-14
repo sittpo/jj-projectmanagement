@@ -6,6 +6,6 @@
 </div>
 <p class="stores-help">Unfinished stores include work awaiting PM sign-off. Undated stores appear last. “Show all stores” is saved to your account.</p>
 <p class="stores-feedback sr-only" role="status" aria-live="polite"></p>
-<?php if(Access::atLeast($user,'pm')): ?><form id="store-bulk-delete" method="post" action="<?= e(url('stores')) ?>" class="store-bulk-bar" hidden><?= csrf() ?><input type="hidden" name="action" value="delete-stores"><span class="store-selection-count" aria-live="polite">0 stores selected</span><span class="field-help">Select all applies to the currently displayed stores. Changing filters clears the selection.</span><button class="button store-delete-selected" disabled>Delete selected stores</button></form><?php endif; ?>
+<?php if(Access::atLeast($user,'pm')): ?><form id="store-bulk-delete" method="post" action="<?= e(url('stores')) ?>" class="store-bulk-bar" hidden><?= csrf() ?><input type="hidden" name="action" value="delete-stores"><span class="store-selection-count" aria-live="polite">0 stores selected</span><span class="field-help">Select all applies to the currently displayed stores. Changing filters clears the selection.</span><button type="submit" class="button primary store-add-templates" disabled>Add missing task templates</button><button class="button store-delete-selected" disabled>Delete selected stores</button></form><?php endif; ?>
 <div id="store-results"><?php require __DIR__.'/stores-results.php'; ?></div>
 </section>

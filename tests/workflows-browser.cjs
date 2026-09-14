@@ -421,6 +421,18 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await page.waitForFunction(()=>document.querySelectorAll('#store-results tbody tr').length===4);
     await page.getByRole('button',{name:'Multi-edit',exact:true}).click();
     await page.getByLabel('Select all displayed stores',{exact:true}).check();
+    page.once('dialog',dialog=>dialog.dismiss());
+    await page.getByRole('button',{name:'Add missing task templates',exact:true}).click();
+    assert.equal(await page.locator('.store-select:checked').count(),4);
+    page.once('dialog',dialog=>dialog.accept());
+    await page.getByRole('button',{name:'Add missing task templates',exact:true}).click();
+    await page.locator('.notice.success').waitFor();
+    assert((await page.locator('.notice.success').textContent()).includes('selected stores already up to date'));
+    await page.getByRole('searchbox',{name:'Search stores'}).fill('Filter');
+    await page.getByRole('button',{name:'Search',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('#store-results tbody tr').length===4);
+    await page.getByRole('button',{name:'Multi-edit',exact:true}).click();
+    await page.getByLabel('Select all displayed stores',{exact:true}).check();
     await page.getByLabel('Select F-LATER · Filter Upcoming',{exact:true}).uncheck();
     assert.equal(await page.locator('.store-select:checked').count(),3);
     assert(await page.locator('.store-select-all').evaluate(box=>box.indeterminate));

@@ -298,6 +298,36 @@ try{
     rmdir($private.'/uploads');
 
     verify(PrerequisiteRepository::issue(['finished'=>0,'target_date'=>null],['name'=>'UniFi order','status'=>['attention_days'=>7]],$today)===null,'Unscheduled stores do not raise prerequisite readiness alerts');
+    require_once dirname(__DIR__).'/src/StoreTemplateUpdater.php';
+    $updater=new StoreTemplateUpdater($p);
+    $patchStore=$p->storeSave(['code'=>'PATCH','name'=>'Template update','city'=>'Test','target_date'=>$installation],null);
+    $patchOther=$p->storeSave(['code'=>'PATCH-OTHER','name'=>'Unselected','city'=>'Test'],null);
+    $before=$steps->list($patchStore);
+    $p->execute('UPDATE subtasks SET note=?,complete=1,signed_by=?,signed_name=?,signed_at=? WHERE id=?',['Keep evidence',$actors['manager']['id'],'Manager',gmdate('Y-m-d\TH:i:s\Z'),$before[0]['id']]);
+    $before=$steps->list($patchStore);
+    $p->templateSave(['category'=>'network','title'=>'New check A','instructions'=>'New instructions','active'=>1],null);
+    $p->templateSave(['category'=>'audio','title'=>'New check B','instructions'=>'Check audio','active'=>1],null);
+    $p->templateSave(['category'=>'rack','title'=>'Inactive check'],null);
+    $newA=$p->rows("SELECT id FROM task_templates WHERE title='New check A'")[0]['id'];
+    $newB=$p->rows("SELECT id FROM task_templates WHERE title='New check B'")[0]['id'];
+    $p->execute('UPDATE task_templates SET report_order=100 WHERE id=?',[$newA]);
+    $p->execute('UPDATE task_templates SET report_order=99 WHERE id=?',[$newB]);
+    denied(fn()=>$updater->addMissing($actors['worker'],[$patchStore]),'Contractor cannot bulk add templates');
+    denied(fn()=>$updater->addMissing($actors['lead'],[$patchStore]),'Contractor admin cannot bulk add templates');
+    denied(fn()=>$updater->addMissing($actors['admin'],[]),'Empty template update selection rejected');
+    denied(fn()=>$updater->addMissing($actors['admin'],[$patchStore,Schema::id()]),'Missing store rejects entire template batch');
+    verify($steps->list($patchStore)===$before,'Rejected template batch preserves evidence');
+    $result=$updater->addMissing($actors['manager'],[$patchStore,$patchStore]);
+    verify($result===['added'=>2,'updated'=>1,'unchanged'=>0],'Missing active templates added once per selected store');
+    $after=$steps->list($patchStore);
+    verify(array_values(array_filter($after,fn($s)=>in_array($s['id'],array_column($before,'id'),true)))===$before,'Existing snapshots, notes, completion, sign-off and ordering preserved');
+    $new=array_values(array_filter($after,fn($s)=>in_array($s['template_id'],[$newA,$newB],true)));
+    verify(count($new)===2&&!$new[0]['complete']&&!$new[0]['signed_at']&&$new[0]['note']==='','New steps start empty and unchecked');
+    verify(array_column(array_slice($steps->list($patchStore,'report_order'),-2),'template_id')===[$newB,$newA],'New steps preserve independent report order');
+    verify(count($steps->list($patchOther))===count($before),'Unselected store unchanged');
+    verify($updater->addMissing($actors['admin'],[$patchStore])===['added'=>0,'updated'=>0,'unchanged'=>1],'Repeated template updates do not duplicate steps');
+    verify(count($p->rows("SELECT id FROM task_audit WHERE action='template-added' AND actor_id=?",[$actors['manager']['id']]))===2,'Template additions record the PM in activity');
+
     echo "All store-workflow tests passed.\n";
 }finally{
     DatabaseSandbox::drop($config,$name);

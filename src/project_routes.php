@@ -9,6 +9,15 @@ if(in_array($page,$projectPages,true)){
     if($page==='smtp'&&!Access::atLeast($user,'admin')){http_response_code(403);$page='forbidden';}
     if($page==='team'&&!Access::atLeast($user,'contractor_admin')){http_response_code(403);$page='forbidden';}
     try{
+        if($page==='stores'&&$isPost&&($_POST['action']??'')==='add-missing-templates'){
+            if(($_POST['confirmed']??'')!=='1')throw new DomainException('Confirm before adding missing templates.');
+            $ids=$_POST['store_ids']??[];
+            if(!is_array($ids))throw new DomainException('Invalid store selection.');
+            require_once __DIR__.'/StoreTemplateUpdater.php';
+            $result=(new StoreTemplateUpdater($project))->addMissing($user,$ids);
+            $_SESSION['flash']=$result['added'].' missing steps added across '.$result['updated'].' stores. '.$result['unchanged'].' selected stores already up to date.';
+            redirect('stores');
+        }
         if($page==='stores'&&$isPost&&($_POST['action']??'')==='delete-stores'){
             if(($_POST['confirmed']??'')!=='1')throw new DomainException('Confirm before deleting stores.');
             $ids=$_POST['store_ids']??[];

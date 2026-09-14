@@ -143,3 +143,7 @@ Push development work to `origin/dev`. Only merge or push to `master` when expli
 PMs and Admins can edit the plain-text subject and message under Project management > Reminder schedule. Listed placeholders insert store details into both automatic and manual reminders. The template is stored in project settings and included in database exports; SMTP credentials remain environment-specific.
 
 Send test reminder sends the current draft with sample store data to the entered recipient through the saved SMTP connector. It does not save the draft or change store reminder logs. The existing CLI development-send flag remains required for scheduled sending.
+
+## Add missing templates to existing stores
+
+PMs and Admins can use Stores > Multi-edit, select stores, then choose Add missing task templates and confirm. All active templates missing by template ID are added as unchecked steps. Existing snapshots, notes, photos, sign-offs and ordering are preserved. New steps are appended in the current template interface/report orders independently. Repeating the action is safe; inactive templates are skipped. Completed stores may become unfinished when new work is added. Additions appear in recent activity.
