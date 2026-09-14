@@ -12,20 +12,21 @@
 <?php if ($page === 'login'): ?>
     <?php require __DIR__ . '/login.php'; ?>
 <?php else: ?>
+<?php require __DIR__ . "/navigation.php"; ?>
 <aside class="sidebar" id="navigation">
     <a class="brand" href="<?= e(url('dashboard')) ?>"><span class="brand-mark">JJ<span></span></span><span>Project Management<small>STORE ROLLOUT</small></span></a>
     <nav aria-label="Main navigation">
         <p class="nav-heading">Workspace</p>
-        <a class="nav-link <?= $page === 'dashboard' ? 'selected' : '' ?>" <?= $page === 'dashboard' ? 'aria-current="page"' : '' ?> href="<?= e(url('dashboard')) ?>"><?= icon('grid') ?>Dashboard</a>
-        <a class="nav-link <?= in_array($page,['stores','store','store-edit'])?'selected':'' ?>" href="<?= e(url('stores')) ?>"><?= icon('store') ?>Stores</a>
+        <a class="nav-link <?= $navigationRoot === 'dashboard' ? 'selected' : '' ?>" <?= $navigationRoot === 'dashboard' ? 'aria-current="page"' : '' ?> href="<?= e(url('dashboard')) ?>"><?= icon('grid') ?>Dashboard</a>
+        <a class="nav-link <?= $navigationRoot==='stores'?'selected':'' ?>" <?= $navigationRoot==='stores'?'aria-current="page"':'' ?> href="<?= e(url('stores')) ?>"><?= icon('store') ?>Stores</a>
         <?php if(Access::atLeast($user,'contractor_admin')): ?><a class="nav-link <?= $page==='team'?'selected':'' ?>" href="<?= e(url('team')) ?>"><?= icon('team') ?>Company team</a><?php endif; ?>
         <?php if(Access::atLeast($user,'pm')): ?>
         <p class="nav-heading">Project management</p>
-        <?php foreach(['prerequisites'=>['Prerequisites','check'],'templates'=>['Task templates','tasks'],'companies'=>['Contracting companies','building'],'settings'=>['Reminder schedule','calendar']] as $route=>$nav): ?><a class="nav-link <?= $page===$route?'selected':'' ?>" href="<?= e(url($route)) ?>"><?= icon($nav[1]) ?><?= e($nav[0]) ?></a><?php endforeach; ?>
+        <?php foreach(['prerequisites'=>['Prerequisites','check'],'templates'=>['Task templates','tasks'],'companies'=>['Contracting companies','building'],'settings'=>['Reminder schedule','calendar']] as $route=>$nav): ?><a class="nav-link <?= $navigationRoot===$route?'selected':'' ?>" <?= $navigationRoot===$route?'aria-current="page"':'' ?> href="<?= e(url($route)) ?>"><?= icon($nav[1]) ?><?= e($nav[0]) ?></a><?php endforeach; ?>
         <?php endif; ?>
         <?php if ($user['role'] === 'admin'): ?>
         <p class="nav-heading">Administration</p><a class="nav-link <?= $page==='store-import'?'selected':'' ?>" href="<?= e(url('store-import')) ?>"><?= icon('upload') ?>Import stores</a>
-        <a class="nav-link <?= in_array($page, ['users','user-edit']) ? 'selected' : '' ?>" <?= in_array($page, ['users','user-edit']) ? 'aria-current="page"' : '' ?> href="<?= e(url('users')) ?>"><?= icon('users') ?>Users</a>
+        <a class="nav-link <?= $navigationRoot==='users' ? 'selected' : '' ?>" <?= $navigationRoot==='users' ? 'aria-current="page"' : '' ?> href="<?= e(url('users')) ?>"><?= icon('users') ?>Users</a>
         <a class="nav-link <?= $page==='smtp'?'selected':'' ?>" href="<?= e(url('smtp')) ?>"><?= icon('network') ?>SMTP connector</a>
         <?php endif; ?>
     </nav>
@@ -34,7 +35,7 @@
 <button class="nav-overlay" aria-label="Close navigation" tabindex="-1"></button>
 <div class="workspace">
 <header class="topbar">
-    <div class="breadcrumb"><button class="icon-button menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="navigation"><?= icon('menu') ?></button><span>Workspace</span><span class="slash">/</span><strong><?= e($title) ?></strong></div>
+    <div class="breadcrumb"><button class="icon-button menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="navigation"><?= icon('menu') ?></button><nav aria-label="Breadcrumb"><ol><?php foreach($breadcrumbs as $crumb): ?><li><?php if($crumb['href']!==null): ?><a href="<?= e($crumb['href']) ?>"><?= e($crumb['label']) ?></a><?php else: ?><strong aria-current="page"><?= e($crumb['label']) ?></strong><?php endif; ?></li><?php endforeach; ?></ol></nav></div>
     <div class="topbar-actions">
         <button class="icon-button theme-toggle" aria-label="Switch color theme" title="Switch color theme"><?= icon('moon') ?></button>
         <span class="topbar-divider"></span>

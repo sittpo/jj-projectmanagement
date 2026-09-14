@@ -65,6 +65,19 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await page.getByRole('button',{name:'Save store',exact:true}).click();
     await page.getByRole('heading',{name:'Harbour Point',exact:true}).waitFor();
     const storeId=new URL(page.url()).searchParams.get('id');
+    const breadcrumb=page.getByRole('navigation',{name:'Breadcrumb',exact:true});
+    assert.deepEqual(await breadcrumb.locator('li').allTextContents(),['Workspace','Stores','Harbour Point']);
+    assert.equal(await page.locator('.sidebar .nav-link.selected').innerText(),'Stores');
+    await page.goto(route('store-edit',storeId));
+    assert.deepEqual(await breadcrumb.locator('li').allTextContents(),['Workspace','Stores','Harbour Point','Edit store']);
+    assert.equal(await page.locator('.sidebar .nav-link.selected').innerText(),'Stores');
+    assert.equal(await breadcrumb.getByRole('link',{name:'Harbour Point',exact:true}).getAttribute('href'),route('store',storeId).replace(base,''));
+    await page.setViewportSize({width:390,height:844});
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.screenshot({path:path.join(root,'storage/store-breadcrumb-mobile.png'),fullPage:false});
+    await page.setViewportSize({width:1440,height:1080});
+    await breadcrumb.getByRole('link',{name:'Harbour Point',exact:true}).click();
+
     await page.locator('.step-card').nth(4).waitFor();
     assert.equal(await page.locator('.step-card').count(),5);
     assert((await page.textContent('body')).includes('2026-10-15'));

@@ -1500,3 +1500,5 @@ input[type=file].sr-only{width:1px;max-width:1px;min-width:0;height:1px;padding:
 .overview-grid > .panel > .panel-foot {margin-top:auto}
 
 .reminder-email-panel{margin-top:24px}.reminder-email-form{display:flex;flex-direction:column;gap:12px}.reminder-email-form>label{font-size:12px;font-weight:550}.reminder-email-form>label:not(:first-child){margin-top:8px}.reminder-email-form code{display:inline-block;margin:3px 8px 3px 0;overflow-wrap:anywhere}.reminder-email-form h3{margin-top:16px}
+
+.breadcrumb{min-width:0;flex:1}.breadcrumb nav{min-width:0}.breadcrumb ol{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;list-style:none;margin:0;padding:0}.breadcrumb li{display:flex;align-items:center;gap:12px;min-width:0;overflow-wrap:anywhere}.breadcrumb li+li::before{content:'/';color:var(--muted);flex-shrink:0}.breadcrumb a{color:var(--muted)}.breadcrumb a:hover{color:var(--teal);text-decoration:underline}.topbar-actions{flex-shrink:0}@media(max-width:700px){.topbar{height:auto;min-height:64px;padding-top:10px;padding-bottom:10px}.breadcrumb ol{gap:4px 8px;font-size:11px}.breadcrumb li{gap:8px}}
