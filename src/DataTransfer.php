@@ -37,6 +37,7 @@ final class DataTransfer
         }
         $this->db->beginTransaction();
         try {
+            $this->db->exec('DELETE FROM user_mfa');
             foreach (array_reverse(Schema::TABLES) as $table) { $this->db->exec("DELETE FROM $table"); }
             foreach (Schema::TABLES as $table) {
                 // Read column names from the installed schema, never trust SQL identifiers in an import.

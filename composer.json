@@ -4,12 +4,15 @@
     "type": "project",
     "require": {
         "php": "^8.4",
-        "ext-pdo": "*",
-        "ext-pdo_mysql": "*",
+        "ext-fileinfo": "*",
         "ext-mbstring": "*",
         "ext-openssl": "*",
-        "ext-fileinfo": "*",
-        "phpmailer/phpmailer": "^7.1"
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "bacon/bacon-qr-code": "^3.0",
+        "phpmailer/phpmailer": "^7.1",
+        "spomky-labs/otphp": "^11.4",
+        "ext-xmlwriter": "*"
     },
     "config": {
         "sort-packages": true,

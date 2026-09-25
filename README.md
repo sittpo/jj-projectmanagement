@@ -147,3 +147,19 @@ Send test reminder sends the current draft with sample store data to the entered
 ## Add missing templates to existing stores
 
 PMs and Admins can use Stores > Multi-edit, select stores, then choose Add missing task templates and confirm. All active templates missing by template ID are added as unchecked steps. Existing snapshots, notes, photos, sign-offs and ordering are preserved. New steps are appended in the current template interface/report orders independently. Repeating the action is safe; inactive templates are skipped. Completed stores may become unfinished when new work is added. Additions appear in recent activity.
+
+## User management and optional MFA
+
+Project Managers can create, edit, disable and set passwords for Contractor and Contractor admin accounts. They cannot access or change PM/Admin accounts or grant those roles. Administrators retain full user-management rights.
+
+Click your avatar in the top bar to open Account security. An amber badge and hover hint appear until MFA is enabled. Enter your current password, scan the locally generated QR code with Google Authenticator or Microsoft Authenticator (Other account), and confirm a six-digit code. Save the eight one-use recovery codes shown after activation; they cannot be viewed again. Setup expires after ten minutes. MFA sign-in challenges expire after five minutes, accept a single adjacent 30-second time step for clock drift, reject reused codes, and are rate-limited. Keep server time synchronized.
+
+The Users list shows MFA status. On Edit user, Admins can reset MFA for anyone; PMs can reset contractor accounts only. Reset requires the acting user's current password and explicit confirmation. Enrollment revokes other sessions; reset revokes all target sessions and recovery codes. A password change alone does not disable MFA.
+
+Deploy with `composer install --no-dev --prefer-dist`, PHP XMLWriter support (`php8.4-xml` on Debian), and `php scripts/console.php migrate` (schema version 9). Serve production over HTTPS. TOTP uses OTPHP and QR rendering uses BaconQrCode; no enrollment secret is sent to an external QR service.
+
+MFA secrets are encrypted in the environment-specific `user_mfa` table using `storage/config/mfa.key` (override the directory with `MFA_CONFIG_DIR`). The key is generated on first enrollment; keep its directory writable by PHP and restrict access to the service account. Back up this key securely alongside full production database backups. A full production restore must restore both the database and its matching key. Recovery codes can still be used if the key is unavailable.
+
+Portable `data:export` intentionally excludes MFA secrets and recovery hashes. A production-to-dev `data:import` clears dev MFA enrollments and invalidates sessions, allowing development accounts to enroll independently. Portable exports are therefore not complete authentication backups.
+
+Additional security checks: `.runtime/php/php.exe tests/security.php`. The browser suite includes PM permission checks and MFA enrollment, sign-in and reset flows using disposable MariaDB databases and isolated keys.

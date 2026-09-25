@@ -7,21 +7,39 @@ final class UserRepository
 
     public function find(string $id): ?array
     {
-        $query = $this->db->prepare('SELECT * FROM users WHERE id = ?');
+        $query = $this->db->prepare('SELECT u.*, EXISTS(SELECT 1 FROM user_mfa m WHERE m.user_id=u.id) AS mfa_enabled FROM users u WHERE id = ?');
         $query->execute([$id]);
         return $query->fetch() ?: null;
     }
 
     public function byUsername(string $username): ?array
     {
-        $query = $this->db->prepare('SELECT * FROM users WHERE username = ?');
+        $query = $this->db->prepare('SELECT u.*, EXISTS(SELECT 1 FROM user_mfa m WHERE m.user_id=u.id) AS mfa_enabled FROM users u WHERE username = ?');
         $query->execute([strtolower(trim($username))]);
         return $query->fetch() ?: null;
     }
 
-    public function all(): array
+    public function all(?array $actor=null): array
     {
-        return $this->db->query('SELECT id, username, display_name, email, role, active, company_id, created_at FROM users ORDER BY display_name, username')->fetchAll();
+        return $this->db->query("SELECT u.id,u.username,u.display_name,u.email,u.role,u.active,u.company_id,u.created_at,EXISTS(SELECT 1 FROM user_mfa m WHERE m.user_id=u.id) AS mfa_enabled FROM users u".($actor&&$actor['role']!=='admin'?" WHERE u.role IN ('contractor','contractor_admin')":"")." ORDER BY u.display_name,u.username")->fetchAll();
+    }
+
+    public static function canManage(array $actor,?array $target=null): bool
+    {
+        return $actor['role']==='admin'||($actor['role']==='pm'&&(!$target||in_array($target['role'],['contractor','contractor_admin'],true)));
+    }
+    public function saveManaged(array $actor,array $input,?string $id): void
+    {
+        $this->db->beginTransaction();
+        try{
+            $ids=array_values(array_unique(array_filter([$actor['id'],$id])));sort($ids);
+            $lock=$this->db->getAttribute(PDO::ATTR_DRIVER_NAME)==='mysql'?' FOR UPDATE':'';
+            $q=$this->db->prepare('SELECT * FROM users WHERE id IN ('.implode(',',array_fill(0,count($ids),'?')).') ORDER BY id'.$lock);$q->execute($ids);
+            $rows=array_column($q->fetchAll(),null,'id');$fresh=$rows[$actor['id']]??null;$target=$id?($rows[$id]??null):null;
+            if(!$fresh||!$fresh['active']||(int)$fresh['session_version']!==(int)$actor['session_version']||($id&&!$target)||!self::canManage($fresh,$target)||!self::canManage($fresh,['role'=>$input['role']??'']))throw new AccessDenied('You cannot manage this user or assign this role.');
+            $this->save($input,$id,$actor['id']);
+            $this->db->commit();
+        }catch(Throwable $error){$this->db->rollBack();throw $error;}
     }
 
     public function save(array $input, ?string $id, string $actorId): void

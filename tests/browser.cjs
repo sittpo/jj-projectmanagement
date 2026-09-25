@@ -13,7 +13,7 @@ const maria = process.env.TEST_MARIADB === '1' || (process.env.TEST_MARIADB !== 
 const database = maria ? 'jjtest_' + suffix : path.join(root, 'storage', 'browser-test-' + suffix + '.sqlite');
 const password = crypto.randomBytes(15).toString('hex');
 const uploadRoot=path.join(root,'storage','browser-uploads-'+suffix);
-const env = { ...process.env, UPLOAD_ROOT:uploadRoot, SMTP_CONFIG_DIR:path.join(root,'storage','browser-smtp-'+suffix), APP_ENV: 'dev', DB_CONNECTION: maria ? 'mysql' : 'sqlite', DB_DATABASE: database, DEV_ADMIN_PASSWORD: password };
+const env = { ...process.env, UPLOAD_ROOT:uploadRoot, MFA_CONFIG_DIR:path.join(root,'storage','browser-mfa-'+suffix), SMTP_CONFIG_DIR:path.join(root,'storage','browser-smtp-'+suffix), APP_ENV: 'dev', DB_CONNECTION: maria ? 'mysql' : 'sqlite', DB_DATABASE: database, DEV_ADMIN_PASSWORD: password };
 let testDatabaseCreated = false;
 let server, browser;
 let serverError = '';
@@ -109,7 +109,7 @@ function command(args) {
     await contractor.getByLabel('Password',{exact:true}).fill(password);
     await contractor.getByRole('button',{name:'Sign in',exact:true}).click();
     await contractor.getByRole('heading',{name:'Project dashboard'}).waitFor();
-    assert.equal((await contractorContext.request.get(base+'/index.php?page=users')).status(),403);
+    assert.equal((await contractorContext.request.get(base+'/index.php?page=users')).status(),200);
     assert.equal((await contractorContext.request.get(base+'/index.php?page=report-export')).status(),200);
     await page.getByRole('link',{name:'Edit Test Contractor',exact:true}).click();
     await page.getByLabel('Active account',{exact:false}).uncheck();
@@ -126,6 +126,7 @@ function command(args) {
         assert.equal((await context.request.get(base+route)).status(),404);
     }
     await require('./workflows-browser.cjs')({page,context,browser,base,password,root});
+    await require('./security-browser.cjs')({page,context,browser,base,password,root});
     await page.getByRole('button',{name:'Sign out',exact:true}).click();
     await page.getByRole('heading',{name:'Welcome back'}).waitFor();
     assert.equal(errors.length,0,errors.join('\n'));
@@ -140,6 +141,7 @@ function command(args) {
         }
         fs.rmdirSync(uploadRoot);
     }
+    if(fs.existsSync(env.MFA_CONFIG_DIR)){fs.unlinkSync(path.join(env.MFA_CONFIG_DIR,'mfa.key'));fs.rmdirSync(env.MFA_CONFIG_DIR);}
     if (maria && testDatabaseCreated) {
         const result = spawnSync(php, ['tests/database.php','drop',database], {cwd:root,env:process.env,encoding:'utf8'});
         if (result.status !== 0) { console.error(result.stderr); process.exitCode=1; }

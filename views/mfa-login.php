@@ -1,0 +1,5 @@
+<div class="login-page"><section class="login-story"><a class="brand" href="/"><span class="brand-mark"><img src="/assets/serenit-s.svg" width="19" height="23" alt=""></span><span>Rollout Management<small>STORE ROLLOUT</small></span></a><div class="login-intro"><span class="eyebrow">ACCOUNT SECURITY</span><h1>One more step.</h1><p>Enter the code from your authenticator app to continue.</p></div></section>
+<section class="login-form-area"><div class="login-form-wrap"><h2>Verify your sign-in</h2><p class="muted">Use a current authenticator code or one of your recovery codes.</p>
+<?php if($error): ?><div class="notice error" role="alert"><?= e($error) ?></div><?php endif; ?>
+<form method="post" class="form-stack" action="<?= e(url('mfa-login')) ?>"><?= csrf() ?><label>Authenticator or recovery code<input name="code" autocomplete="one-time-code" maxlength="64" required autofocus></label><button class="button primary">Verify and sign in</button></form>
+<p class="login-help"><a href="<?= e(url('login')) ?>">Start again</a></p></div></section></div>

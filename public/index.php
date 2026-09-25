@@ -17,23 +17,24 @@ $_SESSION['csrf'] ??= bin2hex(random_bytes(32));
 require dirname(__DIR__) . '/src/view.php';
 try {
     require dirname(__DIR__) . '/src/app.php';
-    $auth = new Auth($db, $users);
+    $mfa=new MfaService($db,getenv('MFA_CONFIG_DIR')?:dirname(__DIR__).'/storage/config');
+    $auth = new Auth($db, $users,$mfa);
     $user = $auth->user();
 } catch (Throwable $exception) {
     error_log((string) $exception);
     http_response_code(503); exit('The application is unavailable. Please try again shortly.');
 }
 $page = is_string($_GET['page'] ?? null) ? $_GET['page'] : 'dashboard';
-if (!in_array($page, ['dashboard','attention','store-import','activity','prerequisites','login','logout','users','user-edit','report-export','stores','store','store-edit','companies','company-edit','templates','template-edit','settings','smtp','photo','step-update','store-report','team'], true)) {
+if (!in_array($page, ['security','mfa-login','user-mfa-reset','dashboard','attention','store-import','activity','prerequisites','login','logout','users','user-edit','report-export','stores','store','store-edit','companies','company-edit','templates','template-edit','settings','smtp','photo','step-update','store-report','team'], true)) {
     http_response_code(404); exit('Not found');
 }
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 if ($isPost && (!is_string($_POST['csrf'] ?? null) || !hash_equals($_SESSION['csrf'], $_POST['csrf']))) {
     http_response_code(403); exit('Your session has changed. Refresh the page and try again.');
 }
-if (!$user && $page !== 'login') { redirect('login'); }
-if ($user && $page === 'login') { redirect('dashboard'); }
-if (in_array($page, ['users','user-edit'], true) && $user['role'] !== 'admin') {
+if (!$user && !in_array($page,['login','mfa-login'],true)) { redirect($auth->pending()?'mfa-login':'login'); }
+if ($user && in_array($page,['login','mfa-login'],true)) { redirect('dashboard'); }
+if (in_array($page, ['users','user-edit'], true) && !Access::atLeast($user,'pm')) {
     http_response_code(403);
     $page = 'forbidden';
 }
@@ -47,7 +48,7 @@ unset($_SESSION['flash']);
 if ($page === 'login' && $isPost) {
     try {
         if ($auth->login((string) ($_POST['username'] ?? ''), (string) ($_POST['password'] ?? ''), $_SERVER['REMOTE_ADDR'] ?? 'unknown')) {
-            redirect('dashboard');
+            redirect($auth->pending()?'mfa-login':'dashboard');
         }
         $error = 'The username or password is incorrect.';
     } catch (DomainException $exception) { $error = $exception->getMessage(); }
@@ -56,20 +57,24 @@ if ($page === 'logout') {
     if (!$isPost) { http_response_code(405); header('Allow: POST'); exit('Use the sign-out button.'); }
     $auth->logout(); redirect('login');
 }
+require dirname(__DIR__).'/src/mfa_routes.php';
 $editing = null;
 if ($page === 'user-edit') {
     $id = isset($_GET['id']) && is_string($_GET['id']) ? $_GET['id'] : null;
     $editing = $id ? $users->find($id) : null;
     if ($id && !$editing) { http_response_code(404); exit('User not found.'); }
-    if ($isPost) {
+    if(!UserRepository::canManage($user,$editing)){http_response_code(403);$page='forbidden';}
+    if ($isPost && $page==='user-edit') {
         try {
-            $users->save($_POST, $id, $user['id']);
+            $users->saveManaged($user,$_POST,$id);
             if ($id === $user['id']) {
                 $_SESSION['user_version'] = (int) $users->find($id)['session_version'];
                 session_regenerate_id(true);
             }
             $_SESSION['flash'] = $id ? 'User updated.' : 'User created.';
             redirect('users');
+        } catch (AccessDenied $exception) {
+            http_response_code(403);$page='forbidden';$error=$exception->getMessage();
         } catch (DomainException $exception) {
             $error = $exception->getMessage();
         } catch (PDOException $exception) {
@@ -111,5 +116,5 @@ if($page==='activity'){
 }
 require dirname(__DIR__).'/src/store_import_routes.php';
 require dirname(__DIR__).'/src/project_routes.php';
-$title = match ($page) { 'attention'=>'Needs attention', 'store-import'=>'Import stores', 'prerequisites'=>'Prerequisites', 'activity'=>'Recent activity', 'login' => 'Sign in', 'users' => 'Users', 'user-edit' => isset($editing['id']) ? 'Edit user' : 'Create user', 'forbidden' => 'Access restricted', 'stores'=>'Stores','store'=>$store['name']??'Store','store-edit'=>'Store details','companies'=>'Contracting companies','company-edit'=>'Company details','templates'=>'Task templates','template-edit'=>'Subtask template','settings'=>'Reminder schedule','smtp'=>'SMTP connector','team'=>'Company team','step-error'=>'Step update', default => 'Dashboard' };
+$title = match ($page) { 'security'=>'Account security','mfa-login'=>'Verify sign-in', 'attention'=>'Needs attention', 'store-import'=>'Import stores', 'prerequisites'=>'Prerequisites', 'activity'=>'Recent activity', 'login' => 'Sign in', 'users' => 'Users', 'user-edit' => isset($editing['id']) ? 'Edit user' : 'Create user', 'forbidden' => 'Access restricted', 'stores'=>'Stores','store'=>$store['name']??'Store','store-edit'=>'Store details','companies'=>'Contracting companies','company-edit'=>'Company details','templates'=>'Task templates','template-edit'=>'Subtask template','settings'=>'Reminder schedule','smtp'=>'SMTP connector','team'=>'Company team','step-error'=>'Step update', default => 'Dashboard' };
 require dirname(__DIR__) . '/views/layout.php';
