@@ -75,7 +75,7 @@ final class ReminderService
     {
         if(!filter_var($recipient,FILTER_VALIDATE_EMAIL)||strlen($recipient)>254)throw new DomainException('Enter a valid test recipient email.');
         if(!$transport)$this->configured(false);
-        $subject='Rollout Management — SMTP test';
+        $subject='Rollout Management - SMTP test';
         $body="This test message confirms that Rollout Management can submit email through the saved SMTP connection.\n\nNo store reminder was triggered.";
         try{
             if($transport)$transport($recipient,$subject,$body);else $this->send($recipient,$subject,$body,false);

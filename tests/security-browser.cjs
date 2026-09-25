@@ -37,7 +37,7 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await pm.tab.getByRole('button',{name:'Create user',exact:true}).click();
     const workerId=new URL(await pm.tab.getByRole('link',{name:'Edit MFA Worker',exact:true}).getAttribute('href'),base).searchParams.get('id');
     const worker=await login('mfaworker'),older=await login('mfaworker');
-    await worker.tab.getByRole('link',{name:'Account security — set up MFA',exact:true}).click();
+    await worker.tab.getByRole('link',{name:'Account security - set up MFA',exact:true}).click();
     await worker.tab.getByLabel('Current password',{exact:true}).fill(password);
     await worker.tab.getByRole('button',{name:'Set up MFA',exact:true}).click();
     assert(await worker.tab.locator('.mfa-qr').evaluate(img=>img.complete&&img.naturalWidth>0));
@@ -76,7 +76,7 @@ module.exports=async({page,context,browser,base,password,root})=>{
     await worker.tab.getByRole('heading',{name:'Your workspace is ready',exact:true}).waitFor();
     assert(await worker.tab.locator('.mfa-notice').isVisible());
     await worker.tab.setViewportSize({width:390,height:844});
-    await worker.tab.getByRole('link',{name:'Account security — set up MFA',exact:true}).click();
+    await worker.tab.getByRole('link',{name:'Account security - set up MFA',exact:true}).click();
     assert(await worker.tab.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await worker.tab.screenshot({path:path.join(root,'storage/security-mobile.png'),fullPage:true});
     for(const account of [pm,worker,older])await account.ctx.close();

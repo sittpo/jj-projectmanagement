@@ -40,7 +40,7 @@
     <div class="topbar-actions">
         <button class="icon-button theme-toggle" aria-label="Switch color theme" title="Switch color theme"><?= icon('moon') ?></button>
         <span class="topbar-divider"></span>
-        <a class="account-security-link" href="<?= e(url('security')) ?>" title="<?= $user['mfa_enabled']?'Manage account security':'Set up MFA to protect your account' ?>" aria-label="<?= $user['mfa_enabled']?'Account security':'Account security — set up MFA' ?>"><span class="user-avatar"><?= e(strtoupper(mb_substr($user['display_name'], 0, 1))) ?></span><?php if(!$user['mfa_enabled']): ?><span class="mfa-notice" aria-hidden="true">!</span><?php endif; ?></a>
+        <a class="account-security-link" href="<?= e(url('security')) ?>" title="<?= $user['mfa_enabled']?'Manage account security':'Set up MFA to protect your account' ?>" aria-label="<?= $user['mfa_enabled']?'Account security':'Account security - set up MFA' ?>"><span class="user-avatar"><?= e(strtoupper(mb_substr($user['display_name'], 0, 1))) ?></span><?php if(!$user['mfa_enabled']): ?><span class="mfa-notice" aria-hidden="true">!</span><?php endif; ?></a>
         <span class="user-label"><?= e($user['display_name']) ?><small><?= e(Access::label($user['role'])) ?></small></span>
         <form method="post" action="<?= e(url('logout')) ?>"><?= csrf() ?><button class="icon-button" aria-label="Sign out" title="Sign out"><?= icon('logout') ?></button></form>
     </div>
