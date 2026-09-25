@@ -10,7 +10,7 @@ final class ReminderTemplate
         $rows=$this->project->rows("SELECT setting_value FROM project_settings WHERE setting_key='reminder_template'");
         return $rows ? json_decode($rows[0]['setting_value'],true,512,JSON_THROW_ON_ERROR) : [
             'subject'=>'Upcoming installation: {{store_name}} on {{installation_date}}',
-            'body'=>"Hello,\n\nThis is a reminder of the equipment installation at {{store_name}} ({{store_code}}) on {{installation_date}}.\n\nPlease make sure the installation team can access the work area. Contact your project manager if arrangements need to change.\n\nJJ Project Management"
+            'body'=>"Hello,\n\nThis is a reminder of the equipment installation at {{store_name}} ({{store_code}}) on {{installation_date}}.\n\nPlease make sure the installation team can access the work area. Contact your project manager if arrangements need to change.\n\nRollout Management"
         ];
     }
     public function validate(array $input): array

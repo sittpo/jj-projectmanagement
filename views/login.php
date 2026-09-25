@@ -1,6 +1,6 @@
 <div class="login-page">
     <section class="login-story">
-        <a class="brand" href="/"><span class="brand-mark">JJ<span></span></span><span>Project Management<small>STORE ROLLOUT</small></span></a>
+        <a class="brand" href="/"><span class="brand-mark"><img src="/assets/serenit-s.svg" width="19" height="23" alt=""></span><span>Rollout Management<small>STORE ROLLOUT</small></span></a>
         <div class="login-intro"><span class="eyebrow">EVERY STORE. EVERY DETAIL.</span><h1>A clear view of<br>your rollout.</h1><p>One workspace for your teams, store upgrades, and the details that keep everything moving.</p><div class="login-features"><span><?= icon('network') ?>Connected teams</span><span><?= icon('check') ?>Confident delivery</span></div></div>
         <span class="login-caption">Networking · Audio · Video surveillance · Rack cabinets</span>
     </section>

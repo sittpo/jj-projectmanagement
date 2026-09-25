@@ -122,15 +122,7 @@ small {
     letter-spacing:-1px;
     position:relative
 }
-.brand-mark span {
-    position:absolute;
-    width:5px;
-    height:5px;
-    border-radius:50%;
-    background:#8fe0b9;
-    right:5px;
-    top:5px
-}
+.brand-mark img {display:block;width:19px;height:23px;object-fit:contain}
 .sidebar nav {
     padding:15px 12px
 }

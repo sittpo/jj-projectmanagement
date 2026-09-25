@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title><?= e($title) ?> · JJ Project Management</title>
+    <title><?= e($title) ?> · Rollout Management</title>
     <link rel="stylesheet" href="/assets/app.css">
     <script src="/assets/app.js" defer></script>
 </head>
@@ -14,7 +14,7 @@
 <?php else: ?>
 <?php require __DIR__ . "/navigation.php"; ?>
 <aside class="sidebar" id="navigation">
-    <a class="brand" href="<?= e(url('dashboard')) ?>"><span class="brand-mark">JJ<span></span></span><span>Project Management<small>STORE ROLLOUT</small></span></a>
+    <a class="brand" href="<?= e(url('dashboard')) ?>"><span class="brand-mark"><img src="/assets/serenit-s.svg" width="19" height="23" alt=""></span><span>Rollout Management<small>STORE ROLLOUT</small></span></a>
     <nav aria-label="Main navigation">
         <p class="nav-heading">Workspace</p>
         <a class="nav-link <?= $navigationRoot === 'dashboard' ? 'selected' : '' ?>" <?= $navigationRoot === 'dashboard' ? 'aria-current="page"' : '' ?> href="<?= e(url('dashboard')) ?>"><?= icon('grid') ?>Dashboard</a>
@@ -50,7 +50,7 @@
     <?php if ($page === 'forbidden'): ?>
     <div class="panel empty-state"><?= icon('shield') ?><h1>Access restricted</h1><p>You do not have permission to view this section.</p><a class="button primary" href="<?= e(url('dashboard')) ?>">Back to dashboard</a></div>
     <?php else: require __DIR__ . '/' . match ($page) { 'attention'=>'attention', 'store-import'=>'store-import', 'prerequisites'=>'prerequisites', 'activity'=>'activity', 'users' => 'users', 'user-edit' => 'user-form', 'stores'=>'stores','store'=>'store','store-edit'=>'store-edit','companies'=>'companies','company-edit'=>'company-edit','templates'=>'templates','template-edit'=>'template-edit','settings'=>'settings','smtp'=>'smtp','team'=>'team','step-error'=>'step-error', default => 'dashboard' } . '.php'; endif; ?>
-    <footer class="page-footer"><span>JJ Project Management</span><span>Built for a connected rollout.</span></footer>
+    <footer class="page-footer"><span>Rollout Management</span><span>Built for a connected rollout.</span></footer>
 </main>
 </div>
 <?php endif; ?>

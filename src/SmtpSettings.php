@@ -7,7 +7,7 @@ final class SmtpSettings
     {
         $path=$this->directory.'/smtp.json';
         $data=is_file($path)?json_decode(file_get_contents($path),true,512,JSON_THROW_ON_ERROR):[];
-        $data+=['host'=>'mail.smtp2go.com','port'=>587,'username'=>'','from_email'=>'','from_name'=>'JJ Project Management','enabled'=>false];
+        $data+=['host'=>'mail.smtp2go.com','port'=>587,'username'=>'','from_email'=>'','from_name'=>'Rollout Management','enabled'=>false];
         $data['has_password']=isset($data['password']);
         if($secret&&isset($data['password'])){
             $key=$this->key(false);$bytes=base64_decode($data['password'],true);

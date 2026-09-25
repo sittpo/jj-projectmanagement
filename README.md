@@ -1,4 +1,4 @@
-# JJ Project Management
+# Rollout Management
 
 PHP 8.4 application for a store equipment rollout. Local development uses `dev`, `APP_ENV=dev`, and **MariaDB 11.8.6**, matching the intended production database version. All interface text and documentation are English.
 

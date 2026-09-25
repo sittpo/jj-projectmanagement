@@ -75,8 +75,8 @@ final class ReminderService
     {
         if(!filter_var($recipient,FILTER_VALIDATE_EMAIL)||strlen($recipient)>254)throw new DomainException('Enter a valid test recipient email.');
         if(!$transport)$this->configured(false);
-        $subject='JJ Project Management — SMTP test';
-        $body="This test message confirms that JJ Project Management can submit email through the saved SMTP connection.\n\nNo store reminder was triggered.";
+        $subject='Rollout Management — SMTP test';
+        $body="This test message confirms that Rollout Management can submit email through the saved SMTP connection.\n\nNo store reminder was triggered.";
         try{
             if($transport)$transport($recipient,$subject,$body);else $this->send($recipient,$subject,$body,false);
         }catch(Throwable $error){error_log('SMTP test failed: '.get_class($error));throw new DomainException('SMTP test failed or acceptance could not be confirmed. Check the saved credentials, verified sender, and SMTP2Go activity.');}
