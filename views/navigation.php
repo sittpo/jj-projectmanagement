@@ -14,8 +14,10 @@ if($navigationRoot!==$page){
     $breadcrumbs[]=['label'=>$navigationLabels[$navigationRoot]??$navigationRoot,'href'=>url($navigationRoot)];
 }
 if($page==='store-edit'){
-    if(isset($store))$breadcrumbs[]=['label'=>$store['name'],'href'=>url('store',['id'=>$store['id']])];
+    if(isset($store))$breadcrumbs[]=['label'=>$store['code'].' · '.$store['name'],'href'=>url('store',['id'=>$store['id']])];
     $breadcrumbTitle=isset($store)?'Edit store':'Create store';
+}elseif($page==='store'){
+    $breadcrumbTitle=$store['code'].' · '.$store['name'];
 }elseif($page==='company-edit'){
     $breadcrumbTitle=isset($id)?'Edit company':'Create company';
 }elseif($page==='template-edit'){
